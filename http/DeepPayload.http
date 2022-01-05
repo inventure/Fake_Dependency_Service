@@ -1,0 +1,33 @@
+
+POST http://{{host}}/deep/payload/test/mock-resources?path.to.property=foo
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "someId": 789
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  },
+  "unknown" : true
+}
+
+###
+
+POST http://{{host}}/deep/payload/test
+Content-Type: application/json
+
+{
+  "path": {
+    "to": {
+      "property": "foo"
+    }
+  }
+}
+
+###
+
+GET http://{{host}}/deep/payload/test/mock-resources?path.to.property=foo
+
+###

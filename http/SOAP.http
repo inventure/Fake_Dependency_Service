@@ -1,0 +1,31 @@
+POST http://{{host}}/soap/api/resource/mock-resources?Body.someWs.arg0.Deeper=foo
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+PATCH http://{{host}}/soap/api/resource/mock-resources?Body.someWs.arg0.Deeper=foo
+
+<?xml version="1.0" encoding="UTF-8"?><Root><Simple><Path>bar</Path></Simple></Root>
+###
+
+POST http://{{host}}/soap/api/resource
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><Deeper>foo</Deeper></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+POST http://{{host}}/soap/api/resource
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><Deeper>foo</Deeper></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+GET http://{{host}}/soap/api/resource/mock-resources?Body.someWs.arg0.Deeper=foo
+
+###
