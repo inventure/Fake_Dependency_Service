@@ -1,0 +1,44 @@
+version: "3.7"
+services:
+  fake-dependency-service:
+    build:
+      context: .
+    ports:
+      - "8099:8099"
+      - "8889:8889" # for debugging, expose port
+    depends_on:
+      - redis
+    restart: always
+    environment:
+      JAVA_OPTS: >
+        --server.port=8099
+        --spring.config.location=/app/resources/application.properties
+        --config.redis.ttl=3000
+        --config.redis.hostname=redis
+        --config.redis.port=6379
+        --config.default.callbacks.minimumDelay=1000
+        --config.default.callbacks.maximumDelay=3000
+        --config.default.callbacks.enabled=true
+        --config.request.id.header=X-Request-ID
+        -agentlib:jdwp=transport=dt_socket,address=*:8999,server=y,suspend=n
+        -debug
+
+  redis:
+    container_name: redis
+    hostname: redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    depends_on:
+      - redis
+    restart: always
+    environment:
+      - REDIS_HOSTS=fake-dependency-service:redis:6379
+    ports:
+      - "8081:8081"
