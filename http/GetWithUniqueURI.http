@@ -1,0 +1,68 @@
+POST http://{{host}}/amazon/mock-resources/users/1/cart
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "items": [
+      {
+        "name": "thing1"
+      },
+      {
+        "name": "thing2"
+      }
+    ]
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+GET http://{{host}}/amazon/users/1/cart
+
+###
+
+GET http://{{host}}/amazon/users/1/cart/mock-resources
+
+###
+
+POST http://{{host}}/amazon/mock-resources/users/2/cart/items
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 204
+  }
+}
+
+###
+
+PUT http://{{host}}/amazon/users/2/cart/items
+Content-Type: application/json
+
+{
+  "item": {
+    "name" : "item1"
+  }
+}
+
+###
+
+PUT http://{{host}}/amazon/users/2/cart/items
+Content-Type: application/json
+
+{
+  "item": {
+    "name" : "item2"
+  }
+}
+
+###
+
+GET http://{{host}}/amazon/users/2/cart/items/mock-resources
+
+###

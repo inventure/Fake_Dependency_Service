@@ -1,0 +1,29 @@
+POST http://{{host}}/amazon/mock-resources/account?phone=1234567890
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "userId": 123
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/amazon/account
+Content-Type: application/json
+
+{
+  "email": "name@example.com",
+  "name": "Elliot Masor",
+  "phone": "1234567890"
+}
+
+###
+
+GET http://{{host}}/amazon/account/mock-resources?phone=1234567890
+
+###
