@@ -1,0 +1,172 @@
+version: "3.7"
+services:
+  immunization-decider-service:
+    build:
+      context: .
+    ports:
+      - "9000:9000"
+    depends_on:
+      - fake-dependency-service
+      - mariadb
+    restart: always
+    environment:
+      HTTP_PROXY: http://mitmproxy-immunization-decider-service:9999
+      http_proxy: http://mitmproxy-immunization-decider-service:9999
+      JAVA_OPTS: >
+        --server.port=9000
+        --spring.config.location=/app/resources/application.properties
+        --mariadb-username=root
+        --mariadb-password=root
+        --mariadb-base-url=mariadb
+        --config.client.baseurl.user=http://fake-dependency-service:8099/fake-dependency/api/user-service
+        --config.client.baseurl.pharmacy=http://fake-dependency-service:8099/fake-dependency/api/pharmacy-service
+        --config.client.baseurl.immunizationhistory=http://fake-dependency-service:8099/fake-dependency/api/immunization-history-service
+
+  fake-dependency-service:
+    build:
+      context: ../fake-dependency-service
+    ports:
+      - "8099:8099"
+      - "8889:8889" # for debugging, expose port
+    depends_on:
+      - redis
+    restart: always
+    environment:
+      HTTP_PROXY: http://mitmproxy-immunization-decider-service:9999
+      http_proxy: http://mitmproxy-immunization-decider-service:9999
+      JAVA_OPTS: >
+        --server.port=8099
+        --spring.config.location=/app/resources/application.properties
+        --config.redis.ttl=3000
+        --config.redis.hostname=redis
+        --config.redis.port=6379
+        --config.default.callbacks.minimumDelay=1000
+        --config.default.callbacks.maximumDelay=3000
+        --config.default.callbacks.enabled=true
+        --config.request.id.header=X-Request-ID
+
+  redis:
+    container_name: redis
+    hostname: redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    depends_on:
+      - redis
+    restart: always
+    environment:
+      - REDIS_HOSTS=fake-dependency-service:redis:6379
+    ports:
+      - "8082:8081"
+
+  mariadb:
+    image: mariadb:10.3
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: immunization_decider
+    restart: on-failure
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./src/main/resources/sql/1.sql:/docker-entrypoint-initdb.d/1.sql
+  mitmproxy:
+    container_name: mitmproxy-immunization-decider-service
+    hostname: mitmproxy-immunization-decider-service
+    image: mitmproxy/mitmproxy
+    ports:
+      - "9091:9091"
+      - "9999:9999"
+    command: "mitmweb --listen-port 9999 --web-port 9091 --web-host mitmproxy-immunization-decider-service --no-ssl-insecure -q"
+
+# TODO Use Kafka for Pub/Sub
+#  kafka:
+#    image: confluentinc/cp-kafka:6.0.3
+#    container_name: kafka-broker
+#    depends_on:
+#      - zookeeper
+#      - schema-registry
+#    ports:
+#      - 9092:9092
+#      - 29092:29092
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,LISTENER_EVERYONE_ELSE://localhost:9092
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,LISTENER_EVERYONE_ELSE://localhost:9092
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LISTENER_EVERYONE_ELSE:PLAINTEXT
+#      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+#      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+#      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+#
+#  zookeeper:
+#    image: confluentinc/cp-zookeeper:6.0.3
+#    container_name: zookeeper
+#    ports:
+#      - 2181:2181
+#    environment:
+#      ZOOKEEPER_CLIENT_PORT: 2181
+#      ZOOKEEPER_TICK_TIME: 2000
+#
+#  kafka-setup:
+#    image: confluentinc/cp-server:6.0.3
+#    hostname: kafka-setup
+#    depends_on:
+#      - kafka
+#      - zookeeper
+#
+#    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+#                        cub kafka-ready -b kafka:29092 1 40 && \
+#                        kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --partitions 1 \
+#                        --replication-factor 1 --topic local-immunization-decision-requests \
+#                        --config confluent.value.schema.validation=true \
+#                        --config confluent.value.subject.name.strategy=io.confluent.kafka.serializers.subject.TopicRecordNameStrategy && \
+#                        kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --partitions 1 \
+#                        --replication-factor 1 --topic local-immunization-decision-results \
+#                        --config confluent.value.schema.validation=true \
+#                        --config confluent.value.subject.name.strategy=io.confluent.kafka.serializers.subject.TopicRecordNameStrategy && \
+#                        echo Waiting 60 seconds for Connect to be ready... && \
+#                        sleep 60'"
+#    environment:
+#      KAFKA_BROKER_ID: ignored
+#      KAFKA_ZOOKEEPER_CONNECT: ignored
+#
+#  schema-registry:
+#    image: confluentinc/cp-schema-registry:6.0.3
+#    hostname: schema-registry
+#    container_name: schema-registry
+#    depends_on:
+#      - zookeeper
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+#      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:2181"
+#
+#  control-center:
+#    image: confluentinc/cp-enterprise-control-center:6.0.3
+#    hostname: control-center
+#    container_name: control-center
+#    depends_on:
+#      - zookeeper
+#      - kafka
+#      - schema-registry
+#    ports:
+#      - "9021:9021"
+#    environment:
+#      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka:29092'
+#      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+#      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+#      CONTROL_CENTER_REPLICATION_FACTOR: 1
+#      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+#      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+#      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+#      PORT: 9021
