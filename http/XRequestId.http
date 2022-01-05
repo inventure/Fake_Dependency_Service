@@ -1,0 +1,88 @@
+POST http://{{host}}/x-request-id-example/mock-resources
+X-Request-ID: abc
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "metadata": {
+      "executionTime": 4.759499905801567,
+      "requestId": "4f83bc58-35ef-4aa0-a79b-bb96a7e6af2a",
+      "errorCode": 0,
+      "errors": [],
+      "statusCode": 200
+    }
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/x-request-id-example
+X-Request-ID: abc
+Content-Type: application/json
+
+{
+  "thing": 1
+}
+
+###
+
+POST http://{{host}}/x-request-id-example
+X-Request-ID: abc
+Content-Type: application/json
+
+{
+  "thing": 2
+}
+
+###
+
+POST http://{{host}}/x-request-id-example/mock-resources
+X-Request-ID: abcd
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "metadata": {
+      "executionTime": 4.759499905801567,
+      "requestId": "4f83bc58-35ef-4aa0-a79b-bb96a7e6af2a",
+      "errorCode": 0,
+      "errors": [],
+      "statusCode": 200
+    }
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+
+POST http://{{host}}/x-request-id-example
+X-Request-ID: abcd
+Content-Type: application/json
+
+{
+  "thing2": 5
+}
+
+###
+
+GET http://{{host}}/x-request-id-example/mock-resources
+X-Request-ID: abc
+
+###
+
+GET http://{{host}}/x-request-id-example/mock-resources
+X-Request-ID: abcd
+
+###
+
+GET http://{{host}}/x-request-id-example/mock-resources
+
+###

@@ -1,0 +1,17 @@
+GET http://{{host}}/regexes/123456/examples
+
+###
+
+POST http://{{host}}/regexes/123456/examples
+Content-Type: application/json
+
+{
+  "things": [
+    1,
+    2,
+    3
+  ],
+  "foo": "bar"
+}
+
+###

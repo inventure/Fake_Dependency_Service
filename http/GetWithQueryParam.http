@@ -1,0 +1,36 @@
+POST http://{{host}}/amazon/mock-resources/cart?userId=5
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "items": [
+      {
+        "name": "thing1"
+      },
+      {
+        "name": "thing2"
+      },
+      {
+        "name": "thing3"
+      }
+    ]
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+GET http://{{host}}/amazon/cart?userId=5
+
+###
+
+GET http://{{host}}/amazon/cart?userId=6
+
+###
+
+GET http://{{host}}/amazon/cart/mock-resources?userId=5
+
+###
