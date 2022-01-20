@@ -1,0 +1,91 @@
+#!groovy
+@Library('atlas_shared')
+import groovy.json.JsonOutput
+
+def buildNumber = env.BUILD_NUMBER
+def branchName = env.BRANCH_NAME
+println "buildNumber: ${buildNumber}"
+println "branchName: ${branchName}"
+
+pipeline {
+    agent {
+        kubernetes {
+            label "build-fake-dependency-service-${BUILD_NUMBER}"
+            defaultContainer 'jnlp'
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: "build-fake-dependency-service-${BUILD_NUMBER}"
+spec:
+  containers:
+  - name: gradle
+    image: gradle:jdk11
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: docker-socket
+  - name: tools
+    image: 004384079765.dkr.ecr.us-west-2.amazonaws.com/devops/jenkins-slave:v1.19
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: docker-socket
+  volumes:
+  - name: docker-socket
+    hostPath:
+      path: /var/run/docker.sock
+      type: File
+"""
+        }
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage("Gradle Build") {
+            // This step also runs the unit tests
+            steps {
+                container('gradle') {
+                    dir("fake-dependency-service") {
+                        sh "../gradlew clean build"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Publish Test Results
+            archiveArtifacts(artifacts: 'fake-dependency-service/build/reports/tests/test/**')
+            publishHTML(target: [
+                    allowMissing         : false,
+                    alwaysLinkToLastBuild: false,
+                    keepAll              : true,
+                    reportDir            : 'fake-dependency-service/build/reports/tests/test',
+                    reportFiles          : 'index.html',
+                    reportName           : "Test Report"
+            ])
+
+            // Publish Code Coverage
+            archiveArtifacts(artifacts: 'fake-dependency-service/build/reports/coverage/**')
+            publishHTML(target: [
+                    allowMissing         : false,
+                    alwaysLinkToLastBuild: false,
+                    keepAll              : true,
+                    reportDir            : 'fake-dependency-service/build/reports/coverage',
+                    reportFiles          : 'index.html',
+                    reportName           : "Code Coverage Report"
+            ])
+        }
+    }
+}
