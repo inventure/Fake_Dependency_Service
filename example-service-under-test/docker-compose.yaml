@@ -18,9 +18,9 @@ services:
         --mariadb-username=root
         --mariadb-password=root
         --mariadb-base-url=mariadb
-        --config.client.baseurl.user=http://fake-dependency-service:8099/fake-dependency/api/user-service
-        --config.client.baseurl.pharmacy=http://fake-dependency-service:8099/fake-dependency/api/pharmacy-service
-        --config.client.baseurl.immunizationhistory=http://fake-dependency-service:8099/fake-dependency/api/immunization-history-service
+        --config.client.baseurl.user=http://fake-dependency-service:8099/mock-service/user-service
+        --config.client.baseurl.pharmacy=http://fake-dependency-service:8099/mock-service/pharmacy-service
+        --config.client.baseurl.immunizationhistory=http://fake-dependency-service:8099/mock-service/immunization-history-service
 
   fake-dependency-service:
     build:
@@ -43,7 +43,7 @@ services:
         --config.default.callbacks.minimumDelay=1000
         --config.default.callbacks.maximumDelay=3000
         --config.default.callbacks.enabled=true
-        --config.request.id.header=X-Request-ID
+        --config.request.id.headers=X-Request-ID
 
   redis:
     container_name: redis

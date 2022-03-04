@@ -1,17 +1,15 @@
 package co.tala.api.fakedependency.business.provider
 
-import co.tala.api.fakedependency.business.composer.IHKeyComposer
-import co.tala.api.fakedependency.business.composer.IHKeyWithQueryComposer
+import co.tala.api.fakedependency.business.composer.IRedisKeyComposer
+import co.tala.api.fakedependency.business.composer.IRedisKeyWithQueryComposer
 import co.tala.api.fakedependency.business.helper.IKeyHelper
-import co.tala.api.fakedependency.business.helper.IRequestIdExtractor
+import co.tala.api.fakedependency.business.helper.IRequestExtractor
 import co.tala.api.fakedependency.business.mockdata.IMockDataRetriever
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.model.MockData
+import co.tala.api.fakedependency.model.DetailedRequestPayloads
 import co.tala.api.fakedependency.redis.IRedisService
-import co.tala.api.fakedependency.redis.RedisKey.Companion.BINARY_KEY
-import co.tala.api.fakedependency.redis.RedisKey.Companion.EXECUTE_KEY
-import co.tala.api.fakedependency.redis.RedisKey.Companion.QUERY_KEY
-import co.tala.api.fakedependency.redis.RedisKey.Companion.VERIFY_KEY
+import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.ResponseEntity
@@ -22,11 +20,11 @@ import javax.servlet.http.HttpServletRequest
 internal class FakeDependencyProvider(
     private val redisSvc: IRedisService,
     private val queryParser: IQueryParser,
-    private val hKeyComposer: IHKeyComposer,
-    private val hKeyWithQueryComposer: IHKeyWithQueryComposer,
+    private val redisKeyComposer: IRedisKeyComposer,
+    private val redisKeyWithQueryComposer: IRedisKeyWithQueryComposer,
     private val mockDataRetriever: IMockDataRetriever,
     private val keyHelper: IKeyHelper,
-    private val requestIdExtractor: IRequestIdExtractor,
+    private val requestExtractor: IRequestExtractor,
     private val objectMapper: ObjectMapper
 ) : IFakeDependencyProvider {
 
@@ -34,12 +32,18 @@ internal class FakeDependencyProvider(
         mockData: MockData,
         request: HttpServletRequest
     ): ResponseEntity<MockData> {
-        val requestId = requestIdExtractor.getRequestId(request)
+        val requestId = requestExtractor.getRequestId(request)
         val query = queryParser.getQuery(request)
-        hKeyComposer.getKeys(requestId, request).forEach { hKey ->
-            if (query.isNotEmpty()) redisSvc.setValue(QUERY_KEY, hKey, query)
-            val hKeyWithQuery = keyHelper.concatenateKeys(hKey, *query.values.toTypedArray())
-            redisSvc.setValue(EXECUTE_KEY, hKeyWithQuery, mockData)
+        redisKeyComposer.getKeys(
+            requestId = requestId,
+            request = request,
+            includeWithoutRequestId = false
+        ).forEach { redisKey ->
+            if (query.isNotEmpty()) {
+                redisSvc.pushSetValue(RedisKeyPrefix.QUERY, redisKey, query)
+            }
+            val redisKeyWithQuery = keyHelper.concatenateKeys(redisKey, *query.keys.plus(query.values).toTypedArray())
+            redisSvc.pushListValue(RedisKeyPrefix.EXECUTE, redisKeyWithQuery, mockData)
         }
         return ResponseEntity.ok(mockData)
     }
@@ -47,13 +51,16 @@ internal class FakeDependencyProvider(
     override fun patchSetup(
         request: HttpServletRequest
     ): ResponseEntity<Unit> {
-        val requestId = requestIdExtractor.getRequestId(request)
+        val requestId = requestExtractor.getRequestId(request)
         val query = queryParser.getQuery(request)
-        hKeyComposer.getKeys(requestId, request).forEach { hKey ->
-            val hKeyWithQuery = keyHelper.concatenateKeys(hKey, *query.values.toTypedArray())
-            val bytes = request.inputStream?.readAllBytes()
-            if (bytes != null)
-                redisSvc.setValue(BINARY_KEY, hKeyWithQuery, bytes)
+        val bytes = request.inputStream?.readAllBytes()
+        redisKeyComposer.getKeys(
+            requestId = requestId,
+            request = request,
+            includeWithoutRequestId = false
+        ).forEach { redisKey ->
+            val redisKeyWithQuery = keyHelper.concatenateKeys(redisKey, *query.keys.plus(query.values).toTypedArray())
+            redisSvc.pushListValue(RedisKeyPrefix.BINARY, redisKeyWithQuery, bytes)
         }
         return ResponseEntity.noContent().build()
     }
@@ -61,10 +68,12 @@ internal class FakeDependencyProvider(
     override fun execute(
         request: HttpServletRequest
     ): ResponseEntity<Any> {
-        val requestId = requestIdExtractor.getRequestId(request)
+        val requestId = requestExtractor.getRequestId(request)
+        val headers = requestExtractor.getRequestHeaders(request)
+        val payloadBinary: ByteArray = request.inputStream.readAllBytes()
         // For GET and DELETE, the payload will be empty string. We should consider that null so that it's not parsed.
         val payload: Any? = if (listOf("GET", "DELETE").contains(request.method)) null else {
-            val payload = String(request.inputStream.readAllBytes())
+            val payload = String(payloadBinary)
             try {
                 // If JSON, convert to MAP
                 objectMapper.readValue(payload, object : TypeReference<Map<String, Any>>() {})
@@ -73,29 +82,93 @@ internal class FakeDependencyProvider(
                 payload
             }
         }
+        val redisKeys = redisKeyWithQueryComposer.getKeys(requestId, request, payload)
+
         return mockDataRetriever.getMockData(
-            requestId = requestId,
+            redisKeys = redisKeys,
             request = request,
             payload = payload
-        ).toResponseEntity().also {
-            hKeyWithQueryComposer.getKeys(requestId = requestId, request = request, payload = payload).forEach { hKey ->
-                redisSvc.pushListValue(VERIFY_KEY, hKey, payload ?: "")
+        ).let {
+            val redisKey = it.redisKey
+            if (redisKey != null) {
+                // Store the string or hashmap for verify list
+                redisSvc.pushListValue(RedisKeyPrefix.VERIFY_PAYLOAD, redisKey, payload ?: "")
+                // Store the binary for verifying the last. This is to be compatible with files, images, zips, etc.
+                // We will only return the last payload for these types.
+                redisSvc.setValue(RedisKeyPrefix.VERIFY_PAYLOAD, redisKey, payloadBinary)
+                // Store the headers for verify detailed
+                redisSvc.pushListValue(RedisKeyPrefix.VERIFY_HEADERS, redisKey, headers)
             }
+            it.mockData.toResponseEntity()
         }
     }
 
-    override fun verify(
+    override fun verifyDetailed(
+        request: HttpServletRequest
+    ): ResponseEntity<DetailedRequestPayloads> {
+        val requestId = requestExtractor.getRequestId(request)
+        val query = queryParser.getQuery(request)
+        val redisKey = redisKeyWithQueryComposer.getKeys(
+            requestId = requestId,
+            request = request,
+            payload = query
+        ).first()
+        val payloadVerify = redisSvc.getListValues(
+            keyPrefix = RedisKeyPrefix.VERIFY_PAYLOAD,
+            key = redisKey,
+            type = object : TypeReference<List<Any>>() {}
+        )
+        val headersVerify = redisSvc.getListValues(
+            keyPrefix = RedisKeyPrefix.VERIFY_HEADERS,
+            key = redisKey,
+            type = object : TypeReference<List<Map<String, List<String>>>>() {}
+        )
+        val payloads = payloadVerify.mapIndexed { index, any ->
+            DetailedRequestPayloads.RequestPayload(
+                payload = any,
+                headers = headersVerify.takeIfSafe(index)
+            )
+        }
+        return ResponseEntity.ok(
+            DetailedRequestPayloads(
+                count = payloads.size,
+                requests = payloads
+            )
+        )
+    }
+
+    override fun verifyLast(
+        request: HttpServletRequest
+    ): ResponseEntity<ByteArray> =
+        ResponseEntity.ok(
+            redisSvc.getValue(
+                keyPrefix = RedisKeyPrefix.VERIFY_PAYLOAD,
+                key = redisKeyWithQueryComposer.getKeys(
+                    requestId = requestExtractor.getRequestId(request),
+                    request = request,
+                    payload = queryParser.getQuery(request)
+                ).first(),
+                type = object : TypeReference<ByteArray>() {}
+            ) ?: byteArrayOf()
+        )
+
+    override fun verifyList(
         request: HttpServletRequest
     ): ResponseEntity<List<Any>> =
         ResponseEntity.ok(
             redisSvc.getListValues(
-                key = VERIFY_KEY,
-                hKey = hKeyWithQueryComposer.getKeys(
-                    requestId = requestIdExtractor.getRequestId(request),
+                keyPrefix = RedisKeyPrefix.VERIFY_PAYLOAD,
+                key = redisKeyWithQueryComposer.getKeys(
+                    requestId = requestExtractor.getRequestId(request),
                     request = request,
                     payload = queryParser.getQuery(request)
                 ).first(),
                 type = object : TypeReference<List<Any>>() {}
             )
         )
+
+    /**
+     * Take a value from a List if index passed exists in the list.
+     */
+    private fun <T> List<T>.takeIfSafe(index: Int): T? = takeIf { index in 0 until size }?.let { it[index] }
 }

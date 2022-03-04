@@ -19,7 +19,7 @@ services:
         --config.default.callbacks.minimumDelay=1000
         --config.default.callbacks.maximumDelay=3000
         --config.default.callbacks.enabled=true
-        --config.request.id.header=X-Request-ID
+        --config.request.id.headers=X-Request-ID
         -agentlib:jdwp=transport=dt_socket,address=*:8999,server=y,suspend=n
         -debug
 

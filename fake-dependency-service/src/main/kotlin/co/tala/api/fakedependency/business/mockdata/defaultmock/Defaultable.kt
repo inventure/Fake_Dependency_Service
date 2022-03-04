@@ -12,12 +12,17 @@ import co.tala.api.fakedependency.model.ResponseSetUpMetadata
  * payload.
  */
 interface Defaultable {
-    fun Defaultable.mockData(responseBody: Any, httpStatus: Int = 200): MockData = MockData(
+    fun Defaultable.mockData(
+        responseBody: Any,
+        httpStatus: Int,
+        responseHeaders: Map<String, List<String>>
+    ): MockData = MockData(
         responseBody = responseBody,
         responseSetUpMetadata = ResponseSetUpMetadata(
             httpStatus = httpStatus,
             delayMs = 0
-        )
+        ),
+        responseHeaders = responseHeaders
     )
 
     fun getMockData(payload: Any?): MockData

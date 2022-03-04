@@ -1,0 +1,48 @@
+POST http://{{host}}/verify-mock-content-test/mock-resources/some-resource?foo=5
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "userId": 123
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/verify-mock-content-test/some-resource?foo=5
+Content-Type: application/json
+X-Some-Header: some header value a
+
+{
+  "some": "json"
+}
+
+###
+
+PUT http://{{host}}/verify-mock-content-test/some-resource?foo=5
+Content-Type: application/octet-stream
+X-Some-Header: some header value b
+
+123
+
+###
+
+GET http://{{host}}/verify-mock-content-test/mock-resources/some-resource?foo=5&verifyMockContent=list
+
+###
+
+GET http://{{host}}/verify-mock-content-test/mock-resources/some-resource?foo=5&verifyMockContent=last
+
+###
+
+GET http://{{host}}/verify-mock-content-test/mock-resources/some-resource?foo=5&verifyMockContent=detailed
+
+###
+
+GET http://{{host}}/verify-mock-content-test/mock-resources/some-resource?foo=5
+
+###

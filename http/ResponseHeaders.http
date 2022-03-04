@@ -1,0 +1,60 @@
+POST http://{{host}}/response-headers-test/mock-resources?userId=5
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "foo": "bar"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  },
+  "responseHeaders": {
+    "X-Header-Example-A": ["Value A", "Value AA"],
+    "X-Header-Example-B": ["Value B", "Value BB"],
+    "X-Header-Example-C": ["Value C"]
+  }
+}
+
+###
+
+GET http://{{host}}/response-headers-test?userId=5
+
+###
+
+GET http://{{host}}/response-headers-test/mock-resources?userId=5
+
+###
+
+POST http://{{host}}/response-headers-test/mock-resources?userId=10
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "foo": "bar"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  },
+  "responseHeaders": {
+    "X-Header-Example-D": ["Value D"]
+  }
+}
+
+###
+
+PATCH http://{{host}}/response-headers-test/mock-resources?userId=10
+Content-Type: text/plain
+
+123 abc
+
+###
+
+GET http://{{host}}/response-headers-test?userId=10
+
+###
+
+GET http://{{host}}/response-headers-test/mock-resources?userId=10
+
+###

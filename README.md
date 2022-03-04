@@ -4,7 +4,7 @@ In micro-service architecture, multiple services integrate together to execute t
 services are separated by concern instead of clumped into a single large monolith. With this separation, this provides
 testing opportunity to test each service in isolation instead of just testing from the front end user perspective.
 
-From a unit testing perspective, well designed applications separate each class by responsibility and use dependency
+From a unit testing perspective, well-designed applications separate each class by responsibility and use dependency
 injection. By doing so, all dependencies are mockable, allowing for near 100% code coverage in the unit tests.
 Similarly, micro-services separated by responsibility allow for integration testing at the service level. Similar to
 how [Mockito](https://site.mockito.org/), [MOQ](https://github.com/moq/moq4), and [MockK](https://mockk.io/) provide
@@ -53,13 +53,17 @@ the `.sh` files should be identical to run in CMD or `.bat` files. These files a
 The mocking framework provides RESTful API endpoints to dynamically mock any RESTful or SOAP API. Example requests will
 follow the descriptions further in the article. The features are:
 
-* Setup Mock: This sets up a mock resource to return a json response body with an http status code. It also allows us to
-  set a delay in case we want to mock a slow api.
+* Setup Mock: This sets up a mock resource to return a json response body with response headers, and an http status
+  code. It also allows us to set a delay in case we want to mock a slow api. A mock can be set to have a chain of
+  responses, where the response changes based on the number of times it was called. For example, we can have a mock
+  return 500 on call 1 followed by 200 on calls 2..n.
 * Patch Mock: Since the setup mock only allows for mocking a json response, we can use the Patch Mock to update the
   response body to be any content. This can be XML String for SOAP or binary for files.
-* Execute Mock: When the URI specified in the Setup is hit, it will return the mocked response and http status code. The
-  request payload is captured and stored in Redis.
-* Verify Mock: Returns all the request payloads sent to the mock.
+* Execute Mock: When the URI specified in the Setup is hit, it will return the mocked response body, response headers,
+  and http status code. The request payload is captured and stored in Redis.
+* Verify Mock: Returns the request payloads sent to the mock. There are 3 options defined by the `verifyMockContent`
+  query param for the kind of verification to be returned. These features are explained
+  under [Verification Features](#verification-features).
 * The Setup, Patch, and Verify endpoints are hit when the URI contains `mock-resources` in it. Mapped by Http method,
   POST -> Setup, PATCH -> Patch, GET -> Verify. The same URI without `mock-resources` in it will then hit Execute. Any
   Http method is allowed.
@@ -71,14 +75,16 @@ guarantee tests running in parallel do not override each other's mocks. Here are
 
 * The URI: The entire uri is part of the key. When unique resources exist in the URI, that is enough for the key to be
   unique. An example could be if a user's id is in the URI. Query Params can also provide unique resources in the URI.
-* Request ID Header: While optional, it is recommended to have a Request ID header for optimum uniqueness. In
-  micro-service architectures, it is a good practice for each service to forward Request IDs to each other. This allows
-  for tracing of each workflow execution. Additionally, some URIs are not unique. A Request ID as part of the mock key
-  will guarantee uniqueness. The request id header name is configurable
+* Request ID Headers: While optional, it is recommended to have a Request ID header for optimum uniqueness and
+  performance. In micro-service architectures, it is a good practice for each service to forward Request IDs to each
+  other. This allows for tracing of each workflow execution. Additionally, some URIs may not unique. A Request ID as
+  part of the mock key will guarantee uniqueness. It is also recommended for performance when the URI (excluding query
+  params) is not unique. This service allows multiple request headers to be used and the header names are configurable
   in [application.properties](./fake-dependency-service/src/main/resources/application.properties)
-  at `config.request.id.header`.
-* If Request IDs are not used, we can grab a unique resource from the request payload sent to the mock as well. The
-  setup method can specify a path to a unique resource in the payload given that that resource is deterministic.
+  at `config.request.id.headers`. The value is a comma delimited string of the request header names.
+* If Request IDs are not used, we can grab a unique resource from the request payload sent to the mock as well, but this
+  is not recommended for performance. The setup method can specify a path to a unique resource in the payload given that
+  that resource is deterministic.
 
 ## Example Service Under Test - Immunization Decider Service
 
@@ -136,13 +142,14 @@ Here is the flow:
 
 * X-Request-ID is optional for services that use request ids and is configurable in application.properties
 * Most headers are removed from the examples for compaction.
-* All of these examples are taken from spec runs of the [Example Integration Specs](#example-integration-specs).
+* These examples are taken from spec runs of the [Example Integration Specs](#example-integration-specs).
 
 **Sections:**
 
 * [Mock for request without payload with unique URI](#mock-for-request-without-payload-with-unique-uri)
 * [Mock for request without payload with unique URI in Query Params](#mock-for-request-without-payload-with-unique-uri-in-query-params)
 * [Mock for request with payload. URI is not unique. The mock id is retrieved from the request payload.](#mock-for-request-with-payload-uri-is-not-unique-the-mock-id-is-retrieved-from-the-request-payload)
+* [Verification Features](#verification-features)
 
 ### Mock for request without payload with unique URI
 
@@ -154,7 +161,7 @@ test.
 The integration tests hit this endpoint for the mock setup. Note that the URI contains `mock-resources`.
 
 ```http request
-POST /fake-dependency/api/user-service/mock-resources/users/6887651168987276474 HTTP/1.1
+POST /mock-service/user-service/mock-resources/users/6887651168987276474 HTTP/1.1
 X-Request-ID: 44968183-1f16-4482-a271-48cb02f44bf6
 
 {"responseBody":{"userId":6887651168987276474,"dateOfBirth":"2021-09-26T17:00:48.662053Z","firstName":"f7181f4f4d2f4cd79f14a2982aa782f8","lastName":"295b65ec11d44acf8e7ae265c816c39f"},"responseSetUpMetadata":{"httpStatus":200,"delayMs":0}}
@@ -175,7 +182,7 @@ of `responseSetUpMetadata`, we have some options:
 The service under test hits this endpoint for its business logic. Note that the URI does not contain `mock-resources`.
 
 ```http request
-GET /fake-dependency/api/user-service/users/6887651168987276474 HTTP/1.1
+GET /mock-service/user-service/users/6887651168987276474 HTTP/1.1
 X-Request-ID: 44968183-1f16-4482-a271-48cb02f44bf6
 
 HTTP/1.1 200
@@ -188,7 +195,7 @@ The integration tests hit this endpoint to verify all request payloads send to t
 In this example, it was a GET call, so there is no request payload.
 
 ```http request
-GET /fake-dependency/api/user-service/mock-resources/users/6887651168987276474 HTTP/1.1
+GET /mock-service/user-service/mock-resources/users/6887651168987276474 HTTP/1.1
 X-Request-ID: 44968183-1f16-4482-a271-48cb02f44bf6
 
 HTTP/1.1 200 
@@ -207,7 +214,7 @@ provides a unique mock id for the test.
 #### Setup
 
 ```http request
-POST /fake-dependency/api/immunization-history-service/mock-resources/immunizations?userId=1058939979370581218 HTTP/1.1
+POST /mock-service/immunization-history-service/mock-resources/immunizations?userId=1058939979370581218 HTTP/1.1
 X-Request-ID: 0a440da1-2fd3-49f8-be4c-7f9f5d516241
 {"responseBody":{"occurrences":[{"date":"2020-08-22T17:00:48.352624Z","type":"INFLUENZA"}]},"responseSetUpMetadata":{"httpStatus":200,"delayMs":0}}
 
@@ -218,7 +225,7 @@ HTTP/1.1 200
 #### Execute
 
 ```http request
-GET /fake-dependency/api/immunization-history-service/immunizations?userId=1058939979370581218 HTTP/1.1
+GET /mock-service/immunization-history-service/immunizations?userId=1058939979370581218 HTTP/1.1
 X-Request-ID: 0a440da1-2fd3-49f8-be4c-7f9f5d516241
 
 HTTP/1.1 200 
@@ -228,7 +235,7 @@ HTTP/1.1 200
 #### Verify
 
 ```http request
-GET /fake-dependency/api/immunization-history-service/mock-resources/immunizations?userId=1058939979370581218 HTTP/1.1
+GET /mock-service/immunization-history-service/mock-resources/immunizations?userId=1058939979370581218 HTTP/1.1
 X-Request-ID: 0a440da1-2fd3-49f8-be4c-7f9f5d516241
 
 HTTP/1.1 200 
@@ -244,7 +251,7 @@ in the payload. More examples can be found in [DeepPayload.http](./http/DeepPayl
 #### Setup
 
 ```http request
-POST /fake-dependency/api/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=638e1cec-e0a6-48b3-a4c6-7ac21ef31973 HTTP/1.1
+POST /mock-service/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=638e1cec-e0a6-48b3-a4c6-7ac21ef31973 HTTP/1.1
 X-Request-ID: b8f1df1d-3397-4dba-9680-ecf1948d9808
 {"responseBody":{},"responseSetUpMetadata":{"httpStatus":200,"delayMs":0}}
 
@@ -258,7 +265,7 @@ uniqueness. Since this is a callback endpoint, it doesn't need to return a respo
 #### Execute
 
 ```http request
-POST /fake-dependency/api/pharmacy-service/immunizations/decisions HTTP/1.1
+POST /mock-service/pharmacy-service/immunizations/decisions HTTP/1.1
 X-Request-ID: b8f1df1d-3397-4dba-9680-ecf1948d9808
 
 {"sourceRefId":"638e1cec-e0a6-48b3-a4c6-7ac21ef31973","userId":5345095103772246863,"status":"SUCCESS","availableImmunizations":["TDAP"],"startedAt":"2022-01-04T17:00:53.000000Z","finishedAt":"2022-01-04T17:00:53.000000Z"}
@@ -268,12 +275,12 @@ HTTP/1.1 200
 ```
 
 Since the `sourceRefId` in the request payload matches the query param in the setup, the mock is hit successfully. The
-request payload is then stored in Redis for the Verify endpoint.
+request payload is then stored in Redis for the verification endpoint.
 
 #### Verify
 
 ```http request
-GET /fake-dependency/api/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=638e1cec-e0a6-48b3-a4c6-7ac21ef31973 HTTP/1.1
+GET /mock-service/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=638e1cec-e0a6-48b3-a4c6-7ac21ef31973 HTTP/1.1
 X-Request-ID: b8f1df1d-3397-4dba-9680-ecf1948d9808
 
 HTTP/1.1 200 
@@ -284,20 +291,75 @@ Since a request payload was sent to the mock, the Verify endpoint returns its pa
 verify all properties in request payload, similar to how unit testing frameworks allow assertions on params sent to
 mocked methods.
 
+### Verification Features
+
+There are 3 different flavors for verification: `list`, `detailed`, and `last`. The `verifyMockContent` query param
+defines which feature to use:
+
+`verifyMockContent=list`
+
+Returns a list of strings representing all request payloads to the mock. The `verifyMockContent` query param defaults to
+this feature if not specified.
+
+```http request
+GET /mock-service/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=1f148c02-3530-40a4-9e87-14c0cfe71749&verifyMockContent=list
+X-Request-ID: 5ee3f345-a882-4bf0-9ebc-fc9e7b5ccff4
+
+HTTP/1.1 200
+[{"sourceRefId":"1f148c02-3530-40a4-9e87-14c0cfe71749","userId":8793823052148616938,"status":"SUCCESS","availableImmunizations":[],"startedAt":"2022-03-01T17:00:55.000000Z","finishedAt":"2022-03-01T17:00:55.000000Z"}]
+```
+
+`verifyMockContent=detailed`
+
+Returns
+a [data structure](./fake-dependency-service/src/main/kotlin/co/tala/api/fakedependency/model/DetailedRequestPayloads.kt)
+that has the count of requests, as well as the string representation of each request and a multi value map of its
+request headers.
+
+```http request
+GET /mock-service/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=1f148c02-3530-40a4-9e87-14c0cfe71749&verifyMockContent=detailed
+X-Request-ID: 5ee3f345-a882-4bf0-9ebc-fc9e7b5ccff4
+
+HTTP/1.1 200
+{"count":1,"requests":[{"payload":{"sourceRefId":"1f148c02-3530-40a4-9e87-14c0cfe71749","userId":8793823052148616938,"status":"SUCCESS","availableImmunizations":[],"startedAt":"2022-03-01T17:00:55.000000Z","finishedAt":"2022-03-01T17:00:55.000000Z"},"headers":{"x-request-id":["5ee3f345-a882-4bf0-9ebc-fc9e7b5ccff4"],"content-type":["application/json"],"content-length":["215"],"host":["fake-dependency-service:8099"],"connection":["Keep-Alive"],"accept-encoding":["gzip"],"user-agent":["okhttp/4.9.0"]}}]} 
+```
+
+`verifyMockContent=last`
+
+Returns a binary of the last request to the mock. If the service under test were to upload a file to the mock, we can
+use this to download the file
+
+```http request
+GET /mock-service/pharmacy-service/mock-resources/immunizations/decisions?sourceRefId=1f148c02-3530-40a4-9e87-14c0cfe71749&verifyMockContent=last
+X-Request-ID: 5ee3f345-a882-4bf0-9ebc-fc9e7b5ccff4
+
+HTTP/1.1 200
+{"sourceRefId":"1f148c02-3530-40a4-9e87-14c0cfe71749","userId":8793823052148616938,"status":"SUCCESS","availableImmunizations":[],"startedAt":"2022-03-01T17:00:55.000000Z","finishedAt":"2022-03-01T17:00:55.000000Z"} 
+```
+
 ## More Examples of Creating and Executing Mocks with HTTP Files
 
-There are various examples of REST and SOAP mocks that can be executed at the [http](./http) directory. Up Fake
-Dependency Service then run these files to see the service working in action.
+There are various examples of REST and SOAP mocks that can be executed at the [http](./http) directory. Start Fake
+Dependency Service in docker, then run these files to see the service working in action.
 
-* [SOAP](./http/SOAP.http) - Provides examples of SOAP API mock.
+* [ChainedResponses](./http/ChainedResponses.http) - Provides examples of chaining mock responses to return different
+  responses when called multiple times.
 * [DeepPayload](./http/DeepPayload.http) - Provides examples of where the unique id is a deeply nested property in a
   request payload.
 * [DefaultMocks](./http/DefaultMocks.http) - Provides examples of default mock responses
 * [GetWithQueryParam](./http/GetWithQueryParam.http) - Provides examples where the query param is the unique id
+* [GetWithQueryParamMulti](./http/GetWithQueryParamMulti.http) - Provides examples where the query param is the unique
+  id, and there are multiple query params.
 * [GetWithUniqueURI](./http/GetWithUniqueURI.http) - Provides examples where the URI is unique enough
 * [PostWithPayloadId](./http/PostWithPayloadId.http) - Provides examples where the unique is a root level property in a
   request payload.
+* [ResponseHeaders](./http/ResponseHeaders.http) - Provides examples where the mock returns defined response headers.
+* [SOAP](./http/SOAP.http) - Provides examples of SOAP API mock.
+* [VerifyMockContent](./http/VerifyMockContent.http) - Provides examples of the verification features.
 * [XRequestId](./http/XRequestId.http) - Provides examples where the X-Request-ID header is used as the unique id.
+* [XRequestIdNotIncluded](./http/XRequestIdNotIncluded.http) - Provides examples where the X-Request-ID header is not
+  included in the setup, but it is passed to the mock. NOTE: While this does work, it is recommended to set up with the
+  request header id if the service under test is passing it.
 
 To execute any of these http files:
 

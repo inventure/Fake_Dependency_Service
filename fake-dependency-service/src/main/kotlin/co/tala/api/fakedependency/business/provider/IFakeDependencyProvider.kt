@@ -1,6 +1,7 @@
 package co.tala.api.fakedependency.business.provider
 
 import co.tala.api.fakedependency.model.MockData
+import co.tala.api.fakedependency.model.DetailedRequestPayloads
 import org.springframework.http.ResponseEntity
 import javax.servlet.http.HttpServletRequest
 
@@ -18,7 +19,13 @@ interface IFakeDependencyProvider {
         request: HttpServletRequest
     ): ResponseEntity<Any>
 
-    fun verify(
+    fun verifyList(
         request: HttpServletRequest
     ): ResponseEntity<List<Any>>
+
+    fun verifyDetailed(
+        request: HttpServletRequest
+    ): ResponseEntity<DetailedRequestPayloads>
+
+    fun verifyLast(request: HttpServletRequest): ResponseEntity<ByteArray>
 }

@@ -13,6 +13,7 @@ class MockDataFactory {
         int httpStatus = 200
         long delayMs = 1
         ResponseSetUpMetadata responseSetUpMetadata = new ResponseSetUpMetadata(httpStatus, delayMs)
-        new MockData(data, responseSetUpMetadata)
+        def responseHeaders = ["X-Some-Header": ["some value"]]
+        new MockData(data, responseSetUpMetadata, responseHeaders)
     }
 }

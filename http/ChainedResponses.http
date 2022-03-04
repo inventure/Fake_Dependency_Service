@@ -1,0 +1,95 @@
+POST http://{{host}}/chained-response-test/mock-resources/some-resource?foo=5
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 500
+  }
+}
+
+###
+
+POST http://{{host}}/chained-response-test/mock-resources/some-resource?foo=5
+Content-Type: application/json
+
+{
+  "responseBody": "response payload foo",
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+GET http://{{host}}/chained-response-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/chained-response-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/chained-response-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/chained-response-test/mock-resources/some-resource?foo=5
+
+###
+
+POST http://{{host}}/chained-response-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 500
+  }
+}
+
+###
+
+PATCH http://{{host}}/chained-response-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+
+###
+
+POST http://{{host}}/chained-response-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+PATCH http://{{host}}/chained-response-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+
+<?xml version="1.0" encoding="UTF-8"?><Root><Simple><Path>bar</Path></Simple></Root>
+###
+
+POST http://{{host}}/chained-response-test/soap/api/resource
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+POST http://{{host}}/chained-response-test/soap/api/resource
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+POST http://{{host}}/chained-response-test/soap/api/resource
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+GET http://{{host}}/chained-response-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+
+###
