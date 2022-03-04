@@ -1,0 +1,33 @@
+POST http://{{host}}/x-request-id-example-not-included/mock-resources
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "data": "things"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/x-request-id-example-not-included
+X-Request-ID: abc
+Content-Type: application/json
+
+{
+  "thing": 1
+}
+
+###
+
+
+GET http://{{host}}/x-request-id-example-not-included/mock-resources
+
+###
+
+GET http://{{host}}/x-request-id-example-not-included/mock-resources
+X-Request-ID: abc
+###

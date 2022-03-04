@@ -8,5 +8,5 @@ import org.springframework.stereotype.Component
 @Component
 @ConfigurationProperties(prefix = "config.request.id")
 data class RequestIdExtractorConfiguration(
-    var header: String = ""
+    var headers: String = ""
 )

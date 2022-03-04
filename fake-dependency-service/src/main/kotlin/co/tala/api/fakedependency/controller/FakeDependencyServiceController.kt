@@ -2,6 +2,7 @@ package co.tala.api.fakedependency.controller
 
 import co.tala.api.fakedependency.business.provider.IFakeDependencyProvider
 import co.tala.api.fakedependency.constant.BaseUrl
+import co.tala.api.fakedependency.constant.VerifyMockContent
 import co.tala.api.fakedependency.model.MockData
 import io.swagger.annotations.Api
 import org.springframework.http.ResponseEntity
@@ -52,8 +53,16 @@ class FakeDependencyServiceController(private val provider: IFakeDependencyProvi
         request: HttpServletRequest
     ): ResponseEntity<Any> = provider.execute(request)
 
+    @Suppress("UNCHECKED_CAST")
     @GetMapping("**/mock-resources/**")
     fun verify(
+        // NOTE: defaults to 'list' for backwards compatibility
+        @RequestParam(defaultValue = "list")
+        verifyMockContent: String,
         request: HttpServletRequest
-    ): ResponseEntity<List<Any>> = provider.verify(request)
+    ): ResponseEntity<Any> = when (VerifyMockContent.valueOf(verifyMockContent.uppercase())) {
+        VerifyMockContent.LIST -> provider.verifyList(request)
+        VerifyMockContent.LAST -> provider.verifyLast(request)
+        VerifyMockContent.DETAILED -> provider.verifyDetailed(request)
+    } as ResponseEntity<Any>
 }

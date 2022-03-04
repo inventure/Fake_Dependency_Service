@@ -7,7 +7,7 @@ import spock.lang.Unroll
 import javax.servlet.http.HttpServletRequest
 
 @Unroll
-class HKeyComposerSpec extends Specification {
+class RedisKeyComposerSpec extends Specification {
     private static final URIS = [
         "/mock-resources/things/123",
         "/mock-resources/things/123",
@@ -20,14 +20,14 @@ class HKeyComposerSpec extends Specification {
 
     private IKeyHelper keyHelperMock
     private HttpServletRequest requestMock
-    private IHKeyComposer sut
+    private IRedisKeyComposer sut
     private String requestId
 
     def setup() {
         keyHelperMock = Mock()
         requestMock = Mock()
         requestId = UUID.randomUUID().toString()
-        sut = new HKeyComposer(keyHelperMock)
+        sut = new RedisKeyComposer(keyHelperMock)
     }
 
     def "getKeys should return all keys, and should remove /mock-resources"() {
@@ -45,13 +45,37 @@ class HKeyComposerSpec extends Specification {
             }
 
         when:
-            List<String> result = sut.getKeys(requestId, requestMock)
+            List<String> result = sut.getKeys(requestId, requestMock, true)
 
         then:
             verifyAll(result) {
                 it.size() == 2
                 it.get(0) == "key0"
                 it.get(1) == "key1"
+            }
+
+        where:
+            uri << URIS
+
+    }
+
+    def "getKeys should return all keys with only requestId if includeWithoutRequestId is false"() {
+        given:
+            1 * requestMock.getRequestURI() >> uri
+            1 * keyHelperMock.concatenateKeys(_) >> { arg ->
+                def params = arg[0] as List<String>
+                assert params[0] == requestId
+                assert params[1] == "/things/123"
+                "key0"
+            }
+
+        when:
+            List<String> result = sut.getKeys(requestId, requestMock, false)
+
+        then:
+            verifyAll(result) {
+                it.size() == 1
+                it.get(0) == "key0"
             }
 
         where:
@@ -69,7 +93,7 @@ class HKeyComposerSpec extends Specification {
             }
 
         when:
-            List<String> result = sut.getKeys(null, requestMock)
+            List<String> result = sut.getKeys(null, requestMock, true)
 
         then:
             verifyAll(result) {

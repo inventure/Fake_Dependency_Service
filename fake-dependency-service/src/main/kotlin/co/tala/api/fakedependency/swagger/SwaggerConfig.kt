@@ -1,5 +1,6 @@
 package co.tala.api.fakedependency.swagger
 
+import co.tala.api.fakedependency.constant.BaseUrl.Companion.FAKE_DEPENDENCY
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import springfox.documentation.builders.ApiInfoBuilder
@@ -16,7 +17,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 class SwaggerConfig {
 
     @Bean
-    fun fakeDependencyApi() = docket("Fake Dependency Controller", "${co.tala.api.fakedependency.constant.BaseUrl.FAKE_DEPENDENCY}.*")
+    fun fakeDependencyApi() = docket("Fake Dependency Controller", "$FAKE_DEPENDENCY.*")
 
     private fun docket(groupName: String, regex: String) =
         Docket(DocumentationType.SWAGGER_2)

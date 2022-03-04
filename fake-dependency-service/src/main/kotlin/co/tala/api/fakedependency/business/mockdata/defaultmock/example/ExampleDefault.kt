@@ -16,7 +16,8 @@ class ExampleDefault(private val redisSvc: IRedisService) : Defaultable {
             "someExampleProperty" to Random.nextLong().toString(),
             "somePayloadCaptureExample" to payload
         ),
-        httpStatus = 202
+        httpStatus = 202,
+        responseHeaders = emptyMap()
     )
 
     /**
