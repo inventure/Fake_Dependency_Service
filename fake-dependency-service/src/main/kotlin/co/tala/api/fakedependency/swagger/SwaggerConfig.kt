@@ -30,7 +30,7 @@ class SwaggerConfig {
 
     private fun metaData(): ApiInfo {
         return ApiInfoBuilder()
-            .title("Fake Depedency Service REST API")
+            .title("Fake Dependency Service REST API")
             .description("REST API for mocking any API")
             .version("1.0.0")
             .contact(Contact("Elliot Masor", "", ""))

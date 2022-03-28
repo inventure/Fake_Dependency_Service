@@ -107,11 +107,10 @@ internal class FakeDependencyProvider(
         request: HttpServletRequest
     ): ResponseEntity<DetailedRequestPayloads> {
         val requestId = requestExtractor.getRequestId(request)
-        val query = queryParser.getQuery(request)
         val redisKey = redisKeyWithQueryComposer.getKeys(
             requestId = requestId,
             request = request,
-            payload = query
+            payload = null
         ).first()
         val payloadVerify = redisSvc.getListValues(
             keyPrefix = RedisKeyPrefix.VERIFY_PAYLOAD,
@@ -146,7 +145,7 @@ internal class FakeDependencyProvider(
                 key = redisKeyWithQueryComposer.getKeys(
                     requestId = requestExtractor.getRequestId(request),
                     request = request,
-                    payload = queryParser.getQuery(request)
+                    payload = null
                 ).first(),
                 type = object : TypeReference<ByteArray>() {}
             ) ?: byteArrayOf()
@@ -161,7 +160,7 @@ internal class FakeDependencyProvider(
                 key = redisKeyWithQueryComposer.getKeys(
                     requestId = requestExtractor.getRequestId(request),
                     request = request,
-                    payload = queryParser.getQuery(request)
+                    payload = null
                 ).first(),
                 type = object : TypeReference<List<Any>>() {}
             )
