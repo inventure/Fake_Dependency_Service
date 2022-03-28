@@ -29,18 +29,18 @@ class RedisKeyWithQueryComposer(
         val querySet = redisSvc.getSetValues(
             keyPrefix = RedisKeyPrefix.QUERY,
             key = redisKey,
-            type = object : TypeReference<Set<Map<String, String>>>() {}
+            type = object : TypeReference<Set<Map<String, List<String>>>>() {}
         )
 
         // Check URI values first
         val requestQuery = queryParser.getQuery(request)
-        val matchingQuery: Map<String, String> = querySet.firstOrNull { it == requestQuery } ?: emptyMap()
+        val matchingQuery: Map<String, List<String>> = querySet.firstOrNull { it == requestQuery } ?: emptyMap()
 
         matchingQuery.ifEmpty {
             // If URI does not have query params, then check the request payload
             querySet.flatMap { it.keys }.distinct().mapNotNull { key: String ->
                 val result = if (payload != null) parser.parse(payload, key) else null
-                if (result != null) key to result else null
+                if (result != null) key to listOf(result) else null
             }.toMap()
         }.let {
             keyHelper.concatenateKeys(redisKey, *it.keys.plus(it.values).toTypedArray())

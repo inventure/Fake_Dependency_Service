@@ -255,8 +255,7 @@ class FakeDependencyProviderSpec extends Specification {
     def "verifyList should get a list of the request history"() {
         given:
             1 * requestExtractorMock.getRequestId(requestMock) >> requestId
-            1 * queryParserMock.getQuery(requestMock) >> QUERY_MAP
-            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, QUERY_MAP) >> REDIS_KEYS_WITH_QUERY
+            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, null) >> REDIS_KEYS_WITH_QUERY
             def history = ["history"]
             1 * redisSvcMock.getListValues(RedisKeyPrefix.VERIFY_PAYLOAD, REDIS_KEYS_WITH_QUERY.first(), _) >> history
 
@@ -270,8 +269,7 @@ class FakeDependencyProviderSpec extends Specification {
     def "verifyDetailed should get a detailed list of the request history"() {
         given:
             1 * requestExtractorMock.getRequestId(requestMock) >> requestId
-            1 * queryParserMock.getQuery(requestMock) >> QUERY_MAP
-            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, QUERY_MAP) >> REDIS_KEYS_WITH_QUERY
+            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, null) >> REDIS_KEYS_WITH_QUERY
             def payloadHistory = ["history"]
             1 * redisSvcMock.getListValues(RedisKeyPrefix.VERIFY_PAYLOAD, REDIS_KEYS_WITH_QUERY.first(), _) >> payloadHistory
             def headerHistory = [["X-Header-A": ["a"]]]
@@ -291,8 +289,7 @@ class FakeDependencyProviderSpec extends Specification {
     def "verifyLast should get the last in the request history as a binary"() {
         given:
             1 * requestExtractorMock.getRequestId(requestMock) >> requestId
-            1 * queryParserMock.getQuery(requestMock) >> QUERY_MAP
-            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, QUERY_MAP) >> REDIS_KEYS_WITH_QUERY
+            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, null) >> REDIS_KEYS_WITH_QUERY
             def binary = "123".getBytes()
             1 * redisSvcMock.getValue(RedisKeyPrefix.VERIFY_PAYLOAD, REDIS_KEYS_WITH_QUERY.first(), _) >> binary
 
@@ -306,8 +303,7 @@ class FakeDependencyProviderSpec extends Specification {
     def "verifyLast should return empty binary if the key is not found"() {
         given:
             1 * requestExtractorMock.getRequestId(requestMock) >> requestId
-            1 * queryParserMock.getQuery(requestMock) >> QUERY_MAP
-            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, QUERY_MAP) >> REDIS_KEYS_WITH_QUERY
+            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, null) >> REDIS_KEYS_WITH_QUERY
             1 * redisSvcMock.getValue(RedisKeyPrefix.VERIFY_PAYLOAD, REDIS_KEYS_WITH_QUERY.first(), _) >> null
 
         when:

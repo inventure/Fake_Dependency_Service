@@ -14,20 +14,15 @@ class QueryParserSpec extends Specification {
         sut = new QueryParser()
     }
 
-    def "getQuery should return a map of query params"() {
+    def "getQuery should return a multi value map of query params"() {
         given:
-            // NOTE: Spring doesn't include the '?' in the value for queryString
-            requestMock.getQueryString() >> "num=5&animal=dog"
+            requestMock.getQueryString() >> "num=5&animal=dog&animal=cat"
 
         when:
-            def result = sut.getQuery(requestMock)
+            Map<String, List<String>> result = sut.getQuery(requestMock)
 
         then:
-            verifyAll(result) {
-                it["num"] == "5"
-                it["animal"] == "dog"
-            }
-
+            result == ["num": ["5"], "animal": ["dog", "cat"]]
     }
 
     def "getQuery should return empty map if query string is null"() {

@@ -57,7 +57,7 @@ class FakeDependencyServiceController(private val provider: IFakeDependencyProvi
     @GetMapping("**/mock-resources/**")
     fun verify(
         // NOTE: defaults to 'list' for backwards compatibility
-        @RequestParam(defaultValue = "list")
+        @RequestParam(defaultValue = "list", name = VerifyMockContent.QUERY_PARAM_KEY)
         verifyMockContent: String,
         request: HttpServletRequest
     ): ResponseEntity<Any> = when (VerifyMockContent.valueOf(verifyMockContent.uppercase())) {

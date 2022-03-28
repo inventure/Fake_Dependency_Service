@@ -1,22 +1,20 @@
 package co.tala.api.fakedependency.business.composer
 
-
+import co.tala.api.fakedependency.business.helper.IKeyHelper
+import co.tala.api.fakedependency.business.parser.IPayloadParser
+import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import com.fasterxml.jackson.core.type.TypeReference
 import spock.lang.Specification
 
 import javax.servlet.http.HttpServletRequest
-import co.tala.api.fakedependency.business.parser.IQueryParser
-import co.tala.api.fakedependency.business.helper.IKeyHelper
-import co.tala.api.fakedependency.business.parser.IPayloadParser
 
 class RedisKeyWithQueryComposerSpec extends Specification {
     private static final KEYS = ["key1", "key2"]
-    private static final QUERY_2_MAP = ["num": "5", "animal": "dog"]
-    private static final Set<Map<String, String>> QUERY_2_SET_MAP = [["num": "5", "animal": "dog"]]
-    private static final Set<Map<String, String>> QUERY_1_SET_MAP = [["num": "5"]]
-    private static final QUERY_EMPTY_MAP = [:]
+    private static final Map<String, List<String>> QUERY_2_MAP = ["num": ["5"], "animal": ["dog", "cat"]]
+    private static final Set<Map<String, List<String>>> QUERY_2_SET_MAP = [["num": ["5"], "animal": ["dog", "cat"]]]
+    private static final Map<String, List<String>> QUERY_EMPTY_MAP = [:]
 
     private HttpServletRequest requestMock
     private String requestId
@@ -57,11 +55,11 @@ class RedisKeyWithQueryComposerSpec extends Specification {
 
             2 * keyHelperMock.concatenateKeys(*_) >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[0], "num", "animal", "5", "dog"]
+                assert params == [KEYS[0], "num", "animal", ["5"], ["dog", "cat"]]
                 "result0"
             } >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[1], "num", "animal", "5", "dog"]
+                assert params == [KEYS[1], "num", "animal", ["5"], ["dog", "cat"]]
                 "result1"
             }
             0 * payloadParserMock.parse(payload, _)
@@ -71,7 +69,6 @@ class RedisKeyWithQueryComposerSpec extends Specification {
 
         then:
             result == ["result0", "result1"]
-
     }
 
     def "query values should come from the payload if the uri has no query params"() {
@@ -92,11 +89,11 @@ class RedisKeyWithQueryComposerSpec extends Specification {
             }
             2 * keyHelperMock.concatenateKeys(*_) >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[0], "num", "animal", "5", "dog"]
+                assert params == [KEYS[0], "num", "animal", ["5"], ["dog"]]
                 "result0"
             } >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[1], "num", "animal", "5", "dog"]
+                assert params == [KEYS[1], "num", "animal", ["5"], ["dog"]]
                 "result1"
             }
             4 * payloadParserMock.parse(payload, _) >> { arg ->
