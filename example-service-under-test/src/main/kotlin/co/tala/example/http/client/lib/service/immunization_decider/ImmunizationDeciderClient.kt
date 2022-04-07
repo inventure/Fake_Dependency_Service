@@ -15,17 +15,14 @@ interface IImmunizationDeciderClient {
 
 class ImmunizationDeciderClient(
     private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder,
     private val queryParamBuilder: IQueryParamBuilder
 ) : IImmunizationDeciderClient {
     override fun initiateDecision(request: InitiateImmunizationDecisionRequest): ApiResponse<Unit> = client.post(
         uri = "/decisions",
-        headers = requestHeaderBuilder.clear().build(),
         content = request
     ).apiResponse()
 
     override fun getStatus(sourceRefId: String): ApiResponse<ImmunizationDecisionStatusResponse> = client.get(
-        uri = "/decisions${queryParamBuilder.clear().addParam("sourceRefId", sourceRefId).build()}",
-        headers = requestHeaderBuilder.clear().build()
+        uri = "/decisions${queryParamBuilder.clear().addParam("sourceRefId", sourceRefId).build()}"
     ).apiResponse()
 }

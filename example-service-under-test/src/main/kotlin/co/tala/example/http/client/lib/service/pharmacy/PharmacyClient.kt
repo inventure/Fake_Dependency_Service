@@ -11,12 +11,10 @@ interface IPharmacyClient {
 }
 
 class PharmacyClient(
-    private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder
+    private val client: IExampleHttpClient
 ) : IPharmacyClient {
     override fun postImmunizationDecision(request: ImmunizationDecisionStatusResponse): ApiResponse<Unit> = client.post(
         uri = "/immunizations/decisions",
-        headers = requestHeaderBuilder.clear().build(),
         content = request
     ).apiResponse()
 }

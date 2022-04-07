@@ -1,8 +1,13 @@
 package co.tala.example.http.client.core
 
 import co.tala.example.http.client.core.ExampleHttpMethod.*
+import co.tala.example.http.client.core.request.BinaryBodyRequest
+import co.tala.example.http.client.core.request.FormBodyRequest
+import co.tala.example.http.client.core.request.MultipartBodyRequest
+import co.tala.example.http.client.lib.builder.IRequestHeaderBuilder
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -13,35 +18,36 @@ import java.time.Instant
 interface IExampleHttpClient {
     fun post(
         uri: String,
-        headers: Map<String, String>,
-        content: Any?
+        headers: Map<String, String> = emptyMap(),
+        content: Any? = null
     ): RawResponse
 
     fun put(
         uri: String,
-        headers: Map<String, String>,
-        content: Any?
+        headers: Map<String, String> = emptyMap(),
+        content: Any? = null
     ): RawResponse
 
     fun patch(
         uri: String,
-        headers: Map<String, String>,
-        content: Any?
+        headers: Map<String, String> = emptyMap(),
+        content: Any? = null
     ): RawResponse
 
     fun get(
         uri: String,
-        headers: Map<String, String>
+        headers: Map<String, String> = emptyMap()
     ): RawResponse
 
     fun delete(
         uri: String,
-        headers: Map<String, String>
+        headers: Map<String, String> = emptyMap()
     ): RawResponse
 }
 
 class ExampleHttpClient(
     private val okHttpClient: OkHttpClient,
+    private val requestHeaderBuilder: IRequestHeaderBuilder,
     private val baseUrl: String,
     private val gson: Gson
 ) : IExampleHttpClient {
@@ -107,28 +113,36 @@ class ExampleHttpClient(
     ): RawResponse {
         val url = "$baseUrl$uri"
         val requestBody: RequestBody = when {
-            content != null -> when (content) {
-                is ByteArray -> content.toRequestBody()
-                is String -> content.toRequestBody()
-                else -> gson.toJson(content).toRequestBody()
+            content != null -> {
+                when (content) {
+                    // For binary content, such as file uploads
+                    is BinaryBodyRequest -> content.toRequestBody()
+                    // For binary content, content-type defaults to application/octet-stream for ByteArray
+                    is ByteArray -> content.toRequestBody(ContentType.APPLICATION_OCTET_STREAM.value.toMediaType())
+                    // for string content, such as XML
+                    is String -> content.toRequestBody(ContentType.TEXT_PLAIN.value.toMediaType())
+                    // for multi-part content, such as multipart/form-data
+                    is MultipartBodyRequest -> content.toRequestBody()
+                    // for application/x-www-form-urlencoded content
+                    // media type of application/x-www-form-urlencoded is set automatically by okHttp
+                    is FormBodyRequest -> content.toRequestBody()
+                    // else we expect json content
+                    else -> gson.toJson(content).toRequestBody(ContentType.APPLICATION_JSON.value.toMediaType())
+                }
             }
             else -> "".toRequestBody()
-        }
-        val contentHeader: Pair<String, String>? = when {
-            content != null && content !is String -> "Content-Type" to when (content) {
-                is ByteArray -> "application/octet-stream"
-                else -> "application/json"
-            }
-            else -> null
         }
 
         val request: Request = Request.Builder()
             .url(url)
             .also { builder ->
-                headers.forEach {
-                    builder.addHeader(it.key, it.value)
-                }
-                if (contentHeader != null) builder.addHeader(contentHeader.first, contentHeader.second)
+                requestHeaderBuilder
+                    .clear()
+                    .build()
+                    .plus(headers)
+                    .forEach {
+                        builder.addHeader(it.key, it.value)
+                    }
             }
             .also { builder ->
                 when (method) {
@@ -157,8 +171,11 @@ class ExampleHttpClient(
 
 inline fun <reified T : Any> RawResponse.apiResponse(): ApiResponse<T> {
     val responseBytes = okHttpResponse.body?.byteStream()?.readAllBytes()
-    val responseString = if (responseBytes != null) String(responseBytes) else null
+    val isByteArray = T::class.java == ByteArray::class.java
+    val responseString =
+        if (responseBytes != null && !isByteArray) String(responseBytes) else null
     val deserializedResponse: T? = when {
+        isByteArray -> responseBytes as T
         responseString != null -> try {
             gson.fromJson<T>(responseString, object : TypeToken<T>() {}.type)
         } catch (e: Exception) {
