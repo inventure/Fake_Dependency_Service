@@ -51,23 +51,23 @@ class ClientFactory<T>(
         val okHttpClient = OkHttpClient()
         val client = ExampleHttpClient(
             okHttpClient = okHttpClient,
+            requestHeaderBuilder = requestBuilder,
             baseUrl = baseUrl ?: this.baseUrl,
             gson = gson
         )
 
         @Suppress("IMPLICIT_CAST_TO_ANY", "UNCHECKED_CAST")
         return when (clazz) {
-            IMockUserClient::class.java -> MockUserClient(client, requestBuilder)
+            IMockUserClient::class.java -> MockUserClient(client)
             IMockImmunizationHistoryClient::class.java -> MockImmunizationHistoryClient(
                 client,
-                requestBuilder,
                 queryBuilder
             )
-            IMockPharmacyClient::class.java -> MockPharmacyClient(client, requestBuilder, queryBuilder)
-            IUserClient::class.java -> UserClient(client, requestBuilder)
-            IImmunizationDeciderClient::class.java -> ImmunizationDeciderClient(client, requestBuilder, queryBuilder)
-            IImmunizationHistoryClient::class.java -> ImmunizationHistoryClient(client, requestBuilder, queryBuilder)
-            IPharmacyClient::class.java -> PharmacyClient(client, requestBuilder)
+            IMockPharmacyClient::class.java -> MockPharmacyClient(client, queryBuilder)
+            IUserClient::class.java -> UserClient(client)
+            IImmunizationDeciderClient::class.java -> ImmunizationDeciderClient(client, queryBuilder)
+            IImmunizationHistoryClient::class.java -> ImmunizationHistoryClient(client, queryBuilder)
+            IPharmacyClient::class.java -> PharmacyClient(client)
             else -> throw Exception("class '${clazz}' is not a valid client!")
         } as T
     }

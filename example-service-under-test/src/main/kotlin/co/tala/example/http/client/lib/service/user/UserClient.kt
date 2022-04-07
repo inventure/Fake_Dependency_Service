@@ -11,11 +11,7 @@ interface IUserClient {
 }
 
 class UserClient(
-    private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder
+    private val client: IExampleHttpClient
 ) : IUserClient {
-    override fun getUser(userId: String): ApiResponse<UserResponse> = client.get(
-        uri = "/users/$userId",
-        headers = requestHeaderBuilder.clear().build()
-    ).apiResponse()
+    override fun getUser(userId: String): ApiResponse<UserResponse> = client.get(uri = "/users/$userId").apiResponse()
 }

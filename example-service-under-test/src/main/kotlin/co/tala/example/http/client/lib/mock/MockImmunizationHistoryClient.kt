@@ -19,7 +19,6 @@ interface IMockImmunizationHistoryClient {
 
 class MockImmunizationHistoryClient(
     private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder,
     private val queryParamBuilder: IQueryParamBuilder
 ) : IMockImmunizationHistoryClient {
     override fun setUpGetHistory(
@@ -27,12 +26,10 @@ class MockImmunizationHistoryClient(
         request: MockData<ImmunizationHistoryResponse>
     ): ApiResponse<MockData<ImmunizationHistoryResponse>> = client.post(
         uri = "/immunizations${queryParamBuilder.clear().addParam("userId", userId).build()}",
-        headers = requestHeaderBuilder.clear().build(),
         content = request
     ).apiResponse()
 
     override fun verifyGetHistory(userId: String): ApiResponse<List<Any>> = client.get(
-        uri = "/immunizations${queryParamBuilder.clear().addParam("userId", userId).build()}",
-        headers = requestHeaderBuilder.clear().build()
+        uri = "/immunizations${queryParamBuilder.clear().addParam("userId", userId).build()}"
     ).apiResponse()
 }

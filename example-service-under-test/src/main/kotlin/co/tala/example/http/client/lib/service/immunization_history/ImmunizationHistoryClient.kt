@@ -13,12 +13,10 @@ interface IImmunizationHistoryClient {
 
 class ImmunizationHistoryClient(
     private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder,
     private val queryParamBuilder: IQueryParamBuilder
 ) : IImmunizationHistoryClient {
     override fun getHistory(userId: String): ApiResponse<ImmunizationHistoryResponse> = client.get(
-        uri = "/immunizations${queryParamBuilder.clear().addParam("userId", userId).build()}",
-        headers = requestHeaderBuilder.clear().build()
+        uri = "/immunizations${queryParamBuilder.clear().addParam("userId", userId).build()}"
     ).apiResponse()
 
 }

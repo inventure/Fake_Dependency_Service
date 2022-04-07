@@ -13,18 +13,15 @@ interface IMockUserClient {
 }
 
 class MockUserClient(
-    private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder
+    private val client: IExampleHttpClient
 ) : IMockUserClient {
     override fun setUpGetUser(userId: String, request: MockData<UserResponse>): ApiResponse<MockData<UserResponse>> =
         client.post(
             uri = "/users/$userId",
-            headers = requestHeaderBuilder.clear().build(),
             content = request
         ).apiResponse()
 
     override fun verifyGetUser(userId: String): ApiResponse<List<Any>> = client.get(
-        uri = "/users/$userId",
-        headers = requestHeaderBuilder.clear().build(),
+        uri = "/users/$userId"
     ).apiResponse()
 }

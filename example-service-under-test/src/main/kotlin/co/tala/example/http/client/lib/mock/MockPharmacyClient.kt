@@ -15,20 +15,17 @@ interface IMockPharmacyClient {
 
 class MockPharmacyClient(
     private val client: IExampleHttpClient,
-    private val requestHeaderBuilder: IRequestHeaderBuilder,
     private val queryParamBuilder: IQueryParamBuilder
 ) : IMockPharmacyClient {
     override fun setUpPostImmunizationDecision(sourceRefId: String, request: MockData<Unit>): ApiResponse<Unit> =
         client.post(
             uri = "/immunizations/decisions${sourceRefIdQuery(sourceRefId)}",
-            headers = requestHeaderBuilder.clear().build(),
             content = request
         ).apiResponse()
 
     override fun verifyPostImmunizationDecision(sourceRefId: String): ApiResponse<List<ImmunizationDecisionStatusResponse>> =
         client.get(
-            uri = "/immunizations/decisions${sourceRefIdQuery(sourceRefId)}",
-            headers = requestHeaderBuilder.clear().build(),
+            uri = "/immunizations/decisions${sourceRefIdQuery(sourceRefId)}"
         ).apiResponse()
 
     private fun sourceRefIdQuery(sourceRefId: String) =
