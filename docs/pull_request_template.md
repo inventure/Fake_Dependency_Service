@@ -4,7 +4,7 @@ https://link.to/ticket
 
 **Type of change**
 
-Please delete options that are not relevant.
+Add an `x` to the ones that are appropriate.
 
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
@@ -16,10 +16,11 @@ Please delete options that are not relevant.
 What tests did you run to verify your changes? Provide instructions so we can reproduce. Please also list any relevant
 details for your test configuration
 
-- [ ] Test A
-- [ ] Test B
+- [ ] `Test A`
+- [ ] `Test B`
 
 ##### Checklist:
+Just add an `x` to the ones that are complete, so reviewers can determine if any remaining items are needed.
 
 - [ ] I have performed a self-review of my own code
 - [ ] I have made corresponding changes to the documentation. Updated documents are linked below:
