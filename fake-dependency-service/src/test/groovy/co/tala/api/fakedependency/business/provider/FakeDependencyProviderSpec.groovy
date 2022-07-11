@@ -9,7 +9,6 @@ import co.tala.api.fakedependency.business.mockdata.MockDataRetrieval
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.model.DetailedRequestPayloads
 import co.tala.api.fakedependency.model.MockData
-import co.tala.api.fakedependency.model.ResponseSetUpMetadata
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import co.tala.api.fakedependency.testutil.MockDataFactory
@@ -90,7 +89,7 @@ class FakeDependencyProviderSpec extends Specification {
             def result = sut.setup(mockData, requestMock)
 
         then: "redisSvc.setValue should not be invoked for the QUERY_KEY"
-            0 * redisSvcMock.pushSetValue(RedisKeyPrefix.QUERY, _, _)
+            0 * redisSvcMock.pushSetValues(RedisKeyPrefix.QUERY, _, _)
         and: "the mock data should be returned"
             result.body == mockData
     }
@@ -102,7 +101,7 @@ class FakeDependencyProviderSpec extends Specification {
             1 * redisKeyComposerMock.getKeys(requestId, requestMock, false) >> REDIS_KEYS
             1 * queryParserMock.getQuery(requestMock) >> QUERY_MAP
             REDIS_KEYS.eachWithIndex { String redisKey, int i ->
-                1 * redisSvcMock.pushSetValue(RedisKeyPrefix.QUERY, redisKey, QUERY_MAP)
+                1 * redisSvcMock.pushSetValues(RedisKeyPrefix.QUERY, redisKey, QUERY_MAP.keySet().toArray())
                 def redisKeyWithQuery = REDIS_KEYS_WITH_QUERY[i]
                 1 * keyHelperMock.concatenateKeys(redisKey, *_) >> { args ->
                     def params = args[0] as List<String>
@@ -146,7 +145,7 @@ class FakeDependencyProviderSpec extends Specification {
             def result = sut.setup(mockData, requestMock)
 
         then: "redisSvc.setValue should not be invoked for the QUERY_KEY"
-            0 * redisSvcMock.pushSetValue(RedisKeyPrefix.QUERY, _, _)
+            0 * redisSvcMock.pushSetValues(RedisKeyPrefix.QUERY, _, _)
         and: "the mock data should be returned"
             result.body == mockData
     }

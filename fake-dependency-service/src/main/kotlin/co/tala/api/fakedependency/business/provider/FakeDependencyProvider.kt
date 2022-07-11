@@ -39,10 +39,12 @@ internal class FakeDependencyProvider(
             request = request,
             includeWithoutRequestId = false
         ).forEach { redisKey ->
+            val keys = query.keys
+            val values = query.values
             if (query.isNotEmpty()) {
-                redisSvc.pushSetValue(RedisKeyPrefix.QUERY, redisKey, query)
+                redisSvc.pushSetValues(RedisKeyPrefix.QUERY, redisKey, *keys.toTypedArray())
             }
-            val redisKeyWithQuery = keyHelper.concatenateKeys(redisKey, *query.keys.plus(query.values).toTypedArray())
+            val redisKeyWithQuery = keyHelper.concatenateKeys(redisKey, *keys.plus(values).toTypedArray())
             redisSvc.pushListValue(RedisKeyPrefix.EXECUTE, redisKeyWithQuery, mockData)
         }
         return ResponseEntity.ok(mockData)

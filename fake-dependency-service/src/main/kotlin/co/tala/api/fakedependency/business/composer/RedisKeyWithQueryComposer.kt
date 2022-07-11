@@ -5,6 +5,7 @@ import co.tala.api.fakedependency.business.parser.IPayloadParser
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
+import co.tala.api.fakedependency.redis.RedisOpsType
 import com.fasterxml.jackson.core.type.TypeReference
 import org.springframework.stereotype.Component
 import javax.servlet.http.HttpServletRequest
@@ -26,25 +27,31 @@ class RedisKeyWithQueryComposer(
         request = request,
         includeWithoutRequestId = true
     ).map { redisKey ->
-        val querySet = redisSvc.getSetValues(
-            keyPrefix = RedisKeyPrefix.QUERY,
-            key = redisKey,
-            type = object : TypeReference<Set<Map<String, List<String>>>>() {}
-        )
-
-        // Check URI values first
         val requestQuery = queryParser.getQuery(request)
-        val matchingQuery: Map<String, List<String>> = querySet.firstOrNull { it == requestQuery } ?: emptyMap()
-
-        matchingQuery.ifEmpty {
-            // If URI does not have query params, then check the request payload
-            querySet.flatMap { it.keys }.distinct().mapNotNull { key: String ->
+        val redisKeyWithQuery = makeKeyWithQuery(redisKey, requestQuery)
+        val mockExists = redisSvc.hasKey(RedisKeyPrefix.EXECUTE, RedisOpsType.VALUE, redisKeyWithQuery)
+        // Check URI values first and return that redis key if mock exists
+        if (mockExists)
+            redisKeyWithQuery
+        else {
+            // If mock does not exist with given URI, then parse the request payload for key values
+            val queryKeys: Set<String> = redisSvc.getSetValues(
+                keyPrefix = RedisKeyPrefix.QUERY,
+                key = redisKey,
+                type = object : TypeReference<Set<String>>() {}
+            )
+            val parsedQuery = queryKeys.mapNotNull { key: String ->
                 val result = if (payload != null) parser.parse(payload, key) else null
                 if (result != null) key to listOf(result) else null
             }.toMap()
-        }.let {
-            keyHelper.concatenateKeys(redisKey, *it.keys.plus(it.values).toTypedArray())
+            makeKeyWithQuery(redisKey, parsedQuery)
         }
+    }
+
+    private fun makeKeyWithQuery(redisKey: String, query: Map<String, List<String>>): String {
+        val keys = query.keys
+        val values = query.values
+        return keyHelper.concatenateKeys(redisKey, *keys.plus(values).toTypedArray())
     }
 
 }

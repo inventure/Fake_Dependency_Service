@@ -15,5 +15,8 @@ class QueryParser : IQueryParser {
             it.key == VerifyMockContent.QUERY_PARAM_KEY
         }?.map { entry ->
             entry.key to entry.value.map { value -> value.split('=').last() }
+        }?.sortedBy {
+            // sort keys so that query param order does not matter
+            it.first
         }?.toMap() ?: emptyMap()
 }
