@@ -23,6 +23,7 @@ Immunization Decider Service) with example integration specs utilizing Fake Depe
 * [Examples of Using Fake Dependency Service](#examples-of-using-fake-dependency-service)
 * [Http Client Library](#http-client-library)
 * [Example Integration Specs](#example-integration-specs)
+* [Debugging Service Under Test](#debugging-service-under-test)
 
 ## How to Start All Services in Docker and Run Tests
 
@@ -720,3 +721,33 @@ Assertion Failure 2
 Assertion failed! Hint: 'string'
 expected:<"bar"> but was:<"foo">
 ```
+
+## Debugging Service Under Test
+
+To see incoming requests from the service under test, you can enable the logging by setting `LOG_REQUESTS_LEVEL` to `DEBUG` in your environment.
+
+In your `docker-compose.yaml` file:
+```
+  fake-dependency-service:
+    container_name: fake-dependency
+    hostname: fake-dependency
+    ...
+    environment:
+      LOG_REQUESTS_LEVEL: DEBUG
+      ...
+```
+In the `Fake Dependency` logs, you will see entries like this:
+
+```
+09-06-2022 00:03:06.860 [http-nio-8099-exec-1] DEBUG o.s.w.f.CommonsRequestLoggingFilter.afterRequest - Incoming Request:
+POST /mock-service/some-auth-service/mock-resources, headers=[x-request-id:"11111111-1111-1111-1111-8c25c9876209",
+user-agent:"PostmanRuntime/7.29.0", accept:"*/*", cache-control:"no-cache", postman-token:"ce867add-e59c-4c94-b92f-57f2a8b2d77e",
+host:"localhost.proxyman.io:8099", accept-encoding:"gzip, deflate, br", connection:"keep-alive", content-length:"860",
+Content-Type:"application/json;charset=UTF-8"], payload={
+    "responseBody": {
+        "Token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+    ...
+```
+
+This way, if you get an error message, `Mock not setup!`, then you can determine what the service under test
+is sending the `Fake Dependency` service.
