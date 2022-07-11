@@ -9,9 +9,11 @@ import org.springframework.data.redis.core.RedisOperations
 import org.springframework.data.redis.core.SetOperations
 import org.springframework.data.redis.core.ValueOperations
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.util.concurrent.TimeUnit
 
+@Unroll
 class RedisServiceSpec extends Specification {
     private static final RedisConfigProperties CONFIG = new RedisConfigProperties(1000L, "hostname", 9999)
     private static final ObjectMapper MAPPER = new JacksonConfiguration().mapper()
@@ -134,16 +136,16 @@ class RedisServiceSpec extends Specification {
             result == objects
     }
 
-    def "pushSetValue should put value into Redis List with expiration ttl"() {
+    def "pushSetValues should put value into Redis List with expiration ttl"() {
         given:
             String setKey = "$KEY_PREFIX-set-$KEY"
 
-        when: "pushSetValue is invoked"
-            sut.pushSetValue(KEY_PREFIX, KEY, OBJ)
+        when: "pushSetValues is invoked"
+            sut.pushSetValues(KEY_PREFIX, KEY, OBJ, OBJ)
 
         then: "the value should be put into Redis List"
             1 * setOperationsMock.add(setKey, _) >> { args ->
-                assert args[1] as LinkedHashMap<String, String> == OBJ
+                assert args[1] as List<LinkedHashMap<String, String>> == [OBJ, OBJ]
             }
         and: "the expiration should be set"
             1 * redisOperationsMock.expire(setKey, CONFIG.ttl, TimeUnit.SECONDS)
@@ -173,5 +175,24 @@ class RedisServiceSpec extends Specification {
 
         then: "the correct value should be returned"
             result == [] as Set<Object>
+    }
+
+    def "hasKey should return #expected when RedisOperations.hasKey returns #mockHasKey"() {
+        given: "RedisOperations.hasKey returns #mockHasKey"
+            String key = "$KEY_PREFIX-${opsType.toString().toLowerCase()}-$KEY"
+            1 * redisOperationsMock.hasKey(key) >> mockHasKey
+
+        when: "hasKey is invoked"
+            boolean result = sut.hasKey(KEY_PREFIX, opsType, KEY)
+
+        then: "the result should be #expected"
+            result == expected
+
+        where:
+            opsType            | mockHasKey | expected
+            RedisOpsType.LIST  | true       | true
+            RedisOpsType.SET   | false      | false
+            RedisOpsType.VALUE | null       | false
+
     }
 }
