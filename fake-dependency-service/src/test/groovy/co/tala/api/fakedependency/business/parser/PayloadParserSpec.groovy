@@ -46,6 +46,7 @@ class PayloadParserSpec extends Specification {
             "root.childWithChildren.animal" | "dog"
             "root.childWithChildren.number" | "10"
             "leaf"                          | "100"
+            "no.such.leaf"                   | null
     }
 
     def "parse should throw exception if the type passed is not an XML String nor Map"() {
@@ -57,14 +58,6 @@ class PayloadParserSpec extends Specification {
 
         where:
             payload << [5, 0.4, 10L, 0.9f, new InvalidModel()]
-    }
-
-    def "parse should throw exception if the key is not found"() {
-        when: "the key passed does not exist"
-            sut.parse(NESTED_XML, "does.not.exist")
-
-        then: "a NoSuchElementException should be thrown"
-            thrown NoSuchElementException
     }
 
 }

@@ -9,5 +9,5 @@ interface IPayloadParser {
      * and not the payload because parsing a payload is expensive, which impacts on performance.
      * Parsing the payload should be used as a last resort for mock id uniqueness.
      */
-    fun parse(payload: Any, key: String): String
+    fun parse(payload: Any, key: String): String?
 }
