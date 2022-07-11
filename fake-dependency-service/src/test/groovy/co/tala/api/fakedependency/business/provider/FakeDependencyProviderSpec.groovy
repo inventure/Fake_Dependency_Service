@@ -9,6 +9,7 @@ import co.tala.api.fakedependency.business.mockdata.MockDataRetrieval
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.model.DetailedRequestPayloads
 import co.tala.api.fakedependency.model.MockData
+import co.tala.api.fakedependency.model.ResponseSetUpMetadata
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import co.tala.api.fakedependency.testutil.MockDataFactory
@@ -119,6 +120,37 @@ class FakeDependencyProviderSpec extends Specification {
             result.body == mockData
     }
 
+    def "setup should set the mock data with non-standard status code"() {
+        given: "the request has no query params"
+
+        and: "ResponseSetUpMetadata has non-standard status code"
+            mockData = MockDataFactory.buildCustomMockData([:], 499)
+
+        and: "there are 2 redisKeys"
+            def query = [:]
+            1 * requestExtractorMock.getRequestId(requestMock) >> requestId
+            1 * redisKeyComposerMock.getKeys(requestId, requestMock, false) >> REDIS_KEYS
+            1 * queryParserMock.getQuery(requestMock) >> query
+            REDIS_KEYS.eachWithIndex { String redisKey, int i ->
+                def redisKeyWithQuery = REDIS_KEYS_WITH_QUERY[i]
+                1 * keyHelperMock.concatenateKeys(redisKey, *_) >> { args ->
+                    def params = args[0] as List<String>
+                    assert params.size() == 1
+                    assert params[0] == redisKey
+                    redisKeyWithQuery
+                }
+                1 * redisSvcMock.pushListValue(RedisKeyPrefix.EXECUTE, redisKeyWithQuery, mockData)
+            }
+
+        when: "setup is invoked"
+            def result = sut.setup(mockData, requestMock)
+
+        then: "redisSvc.setValue should not be invoked for the QUERY_KEY"
+            0 * redisSvcMock.pushSetValue(RedisKeyPrefix.QUERY, _, _)
+        and: "the mock data should be returned"
+            result.body == mockData
+    }
+
     def "patch setup should store the binary in redis"() {
         given:
             1 * requestExtractorMock.getRequestId(requestMock) >> requestId
@@ -223,6 +255,39 @@ class FakeDependencyProviderSpec extends Specification {
             result != null
             result.body == mockData.responseBody
             result.getHeaders() == mockData.responseHeaders
+    }
+
+    @Unroll
+    def "execute should return non-standard status code #title"() {
+        given:
+            def payloadString = new String(BINARY)
+            def payloadMap = ["some": "map"]
+            ServletInputStream streamMock = Mock()
+            streamMock.readAllBytes() >> BINARY
+            requestMock.getInputStream() >> streamMock
+            1 * requestExtractorMock.getRequestId(requestMock) >> requestId
+            1 * requestExtractorMock.getRequestHeaders(requestMock) >> REQUEST_HEADERS
+            1 * redisKeyWithQueryComposerMock.getKeys(requestId, requestMock, payloadMap) >> REDIS_KEYS_WITH_QUERY
+            mockDataRetrieval = new MockDataRetrieval(UUID.randomUUID().toString(),
+                MockDataFactory.buildCustomMockData([:], 499))
+            1 * mockDataRetrieverMock.getMockData(REDIS_KEYS_WITH_QUERY, requestMock, payloadMap) >> mockDataRetrieval
+            1 * objectMapperMock.readValue(payloadString, _) >> {payloadMap }
+            1 * redisSvcMock.pushListValue(RedisKeyPrefix.VERIFY_PAYLOAD, mockDataRetrieval.redisKey, payloadMap)
+            1 * redisSvcMock.pushListValue(RedisKeyPrefix.VERIFY_HEADERS, mockDataRetrieval.redisKey, REQUEST_HEADERS)
+            1 * redisSvcMock.setValue(RedisKeyPrefix.VERIFY_PAYLOAD, mockDataRetrieval.redisKey, BINARY)
+
+        when:
+            def result = sut.execute(requestMock)
+
+        then:
+            result != null
+            result.body == mockDataRetrieval.mockData.responseBody
+            result.getHeaders() == mockData.responseHeaders
+
+        where:
+            title             | headers
+            "with headers"    | ["X-Some-Header": ["some value"]]
+            "without headers" | [:]
     }
 
     def "execute should update request history with empty string if the Http method is GET or DELETE"() {
