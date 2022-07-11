@@ -9,8 +9,7 @@ class MockDataFactory {
         buildCustomMockData([name: 'Elliot Masor', id: 123.4])
     }
 
-    static MockData buildCustomMockData(Object data) {
-        int httpStatus = 200
+    static MockData buildCustomMockData(Object data, int httpStatus = 200) {
         long delayMs = 1
         ResponseSetUpMetadata responseSetUpMetadata = new ResponseSetUpMetadata(httpStatus, delayMs)
         def responseHeaders = ["X-Some-Header": ["some value"]]
