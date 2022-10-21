@@ -1,5 +1,6 @@
 # https://hub.docker.com/_/gradle. If updating this version, update Jenkinsfile as well.
-FROM gradle:6.5-jdk11 as clean_build
+ARG GRADLE_IMAGE=gradle:7.5.1-jdk11
+FROM ${GRADLE_IMAGE} as clean_build
 ARG GRADLE_TARGETS="clean assemble -Dorg.gradle.jvmargs=-Xmx8g -Dkotlin.daemon.jvm.options=-Xmx6g"
 ARG JAR_FILE="example-service-under-test-0.0.1-SNAPSHOT.jar"
 COPY --chown=1000:1000 build.gradle.kts settings.gradle.kts ./
