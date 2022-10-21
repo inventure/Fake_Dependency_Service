@@ -150,6 +150,7 @@ Here is the flow:
 * [Mock for request without payload with unique URI](#mock-for-request-without-payload-with-unique-uri)
 * [Mock for request without payload with unique URI in Query Params](#mock-for-request-without-payload-with-unique-uri-in-query-params)
 * [Mock for request with payload. URI is not unique. The mock id is retrieved from the request payload.](#mock-for-request-with-payload-uri-is-not-unique-the-mock-id-is-retrieved-from-the-request-payload)
+* [Mock for request with payload. URI is not unique. The mock id is retrieved from the request header payload.](#mock-for-request-with-payload-uri-is-not-unique-the-mock-id-is-retrieved-from-the-request-header-payload)
 * [Verification Features](#verification-features)
 
 ### Mock for request without payload with unique URI
@@ -292,6 +293,55 @@ Since a request payload was sent to the mock, the Verify endpoint returns its pa
 verify all properties in request payload, similar to how unit testing frameworks allow assertions on params sent to
 mocked methods.
 
+### Mock for request with payload. URI is not unique. The mock id is retrieved from the request header payload
+
+To make a mock id from a request header that is json, we set the `X-Fake-Dependency-Parse-Payload-Header` in the mock
+setup. In this example we set it to `X-Amzn-SageMaker-Custom-Attributes`. The query
+params `x_request_id=82f21d52-bdfb-4748-bfae-5c1c0a357cf6&name=some_name_1_1` from the setup are then parsed from the
+json in the `X-Amzn-SageMaker-Custom-Attributes` header on execute.
+
+### Setup
+
+```http request
+POST /mock-service/sagemaker/mock-resources/endpoints/some-xgb1/invocations?x_request_id=82f21d52-bdfb-4748-bfae-5c1c0a357cf6&name=some_name_1_1 HTTP/1.1
+X-Fake-Dependency-Parse-Payload-Header: X-Amzn-SageMaker-Custom-Attributes
+Content-Type: application/json; charset=utf-8
+
+{"responseBody":0.7,"responseSetUpMetadata":{"httpStatus":200,"delayMs":0},"responseHeaders":{}}
+```
+
+### Execute
+
+```http request
+POST /mock-service/sagemaker/endpoints/some-xgb1/invocations
+X-Amzn-SageMaker-Custom-Attributes: {"x_request_id": "0ca878fc-b450-435c-84e4-42f69467a274", "name": "some_name_1_1"}
+Content-Type: text/csv
+
+00000.0,100000.0\n
+
+HTTP/1.1 200 
+0.7
+```
+
+### Verify
+
+```http request
+GET /mock-service/sagemaker/mock-resources/endpoints/some-xgb1/invocations?verifyMockContent=detailed&x_request_id=82f21d52-bdfb-4748-bfae-5c1c0a357cf6&name=some_name_1_1
+
+
+{
+	"count": 1,
+	"requests": [{
+		"payload": "00000.0,100000.0\n",
+		"headers": {
+			"host": ["fake-dependency-service:8099"],
+			"content-type": ["text/csv"],
+			"x-amzn-sagemaker-custom-attributes": ["{\"x_request_id\": \"82f21d52-bdfb-4748-bfae-5c1c0a357cf6\", \"name\": \"some_name_1_1\"}"],
+		}
+	}]
+}
+```
+
 ### Verification Features
 
 There are 3 different flavors for verification: `list`, `detailed`, and `last`. The `verifyMockContent` query param
@@ -352,6 +402,7 @@ Dependency Service in docker, then run these files to see the service working in
 * [GetWithQueryParamMulti](./http/GetWithQueryParamMulti.http) - Provides examples where the query param is the unique
   id, and there are multiple query params.
 * [GetWithUniqueURI](./http/GetWithUniqueURI.http) - Provides examples where the URI is unique enough
+* [ParseRequestHeaderPayload](./http/ParseRequestHeaderPayload.http) - Provides examples where the mock id is parsed from a request header json
 * [PostWithPayloadId](./http/PostWithPayloadId.http) - Provides examples where the unique is a root level property in a
   request payload.
 * [ResponseHeaders](./http/ResponseHeaders.http) - Provides examples where the mock returns defined response headers.
@@ -724,9 +775,11 @@ expected:<"bar"> but was:<"foo">
 
 ## Debugging Service Under Test
 
-To see incoming requests from the service under test, you can enable the logging by setting `LOG_REQUESTS_LEVEL` to `DEBUG` in your environment.
+To see incoming requests from the service under test, you can enable the logging by setting `LOG_REQUESTS_LEVEL`
+to `DEBUG` in your environment.
 
 In your `docker-compose.yaml` file:
+
 ```
   fake-dependency-service:
     container_name: fake-dependency
@@ -736,6 +789,7 @@ In your `docker-compose.yaml` file:
       LOG_REQUESTS_LEVEL: DEBUG
       ...
 ```
+
 In the `Fake Dependency` logs, you will see entries like this:
 
 ```
@@ -749,5 +803,5 @@ Content-Type:"application/json;charset=UTF-8"], payload={
     ...
 ```
 
-This way, if you get an error message, `Mock not setup!`, then you can determine what the service under test
-is sending the `Fake Dependency` service.
+This way, if you get an error message, `Mock not setup!`, then you can determine what the service under test is sending
+the `Fake Dependency` service.

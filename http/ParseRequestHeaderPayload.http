@@ -1,0 +1,57 @@
+POST http://{{host}}/parse/payload/header/test/mock-resources?x_request_id=1fefb0a0-9214-435b-b551-b9a8606fb74c&some_id=123
+Content-Type: application/json
+X-Fake-Dependency-Parse-Payload-Header: X-Amzn-SageMaker-Custom-Attributes
+
+{
+  "responseBody": {
+    "someId": 789
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/parse/payload/header/test
+X-Amzn-SageMaker-Custom-Attributes: {"x_request_id": "1fefb0a0-9214-435b-b551-b9a8606fb74c", "some_id": 123}
+
+"SOME PAYLOAD"
+
+###
+
+GET http://{{host}}/parse/payload/header/test/mock-resources?x_request_id=1fefb0a0-9214-435b-b551-b9a8606fb74c&some_id=123
+
+###
+
+POST http://{{host}}/parse/payload/header/test/mock-resources?x_request_id=zzzzz-9214-435b-b551-b9a8606fb74c&some_id=123
+Content-Type: application/json
+X-Fake-Dependency-Parse-Payload-Header: X-Amzn-SageMaker-Custom-Attributes
+
+{
+  "responseBody": {
+    "someId": 789
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/parse/payload/header/test
+X-Amzn-SageMaker-Custom-Attributes: {"x_request_id": "zzzzz-9214-435b-b551-b9a8606fb74c", "some_id": 123}
+
+"SOME OTHER PAYLOAD"
+
+###
+
+GET http://{{host}}/parse/payload/header/test/mock-resources?x_request_id=zzzzz-9214-435b-b551-b9a8606fb74c&some_id=123&verifyMockContent=detailed
+
+###
+
+GET http://{{host}}/parse/payload/header/test/mock-resources?x_request_id=zzzzz-9214-435b-b551-b9a8606fb74c&some_id=123&verifyMockContent=last
+
+###
