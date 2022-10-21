@@ -1,6 +1,7 @@
 package co.tala.api.fakedependency.business.composer
 
 import co.tala.api.fakedependency.business.helper.IKeyHelper
+import co.tala.api.fakedependency.business.helper.IRequestExtractor
 import co.tala.api.fakedependency.business.parser.IPayloadParser
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.redis.IRedisService
@@ -8,9 +9,11 @@ import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import co.tala.api.fakedependency.redis.RedisOpsType
 import com.fasterxml.jackson.core.type.TypeReference
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import javax.servlet.http.HttpServletRequest
 
+@Unroll
 class RedisKeyWithQueryComposerSpec extends Specification {
     private static final KEYS = ["key1", "key2"]
     private static final Map<String, List<String>> QUERY_MAP = ["num": ["5"], "animal": ["dog", "cat"]]
@@ -25,6 +28,7 @@ class RedisKeyWithQueryComposerSpec extends Specification {
     private IQueryParser queryParserMock
     private IKeyHelper keyHelperMock
     private IPayloadParser payloadParserMock
+    private IRequestExtractor requestExtractorMock
     private IRedisKeyWithQueryComposer sut
 
     def setup() {
@@ -35,7 +39,8 @@ class RedisKeyWithQueryComposerSpec extends Specification {
         queryParserMock = Mock()
         keyHelperMock = Mock()
         payloadParserMock = Mock()
-        sut = new RedisKeyWithQueryComposer(redisSvcMock, redisKeyComposerMock, queryParserMock, keyHelperMock, payloadParserMock)
+        requestExtractorMock = Mock()
+        sut = new RedisKeyWithQueryComposer(redisSvcMock, redisKeyComposerMock, queryParserMock, keyHelperMock, payloadParserMock, requestExtractorMock)
     }
 
     def "query values should come from uri if they exist and are in Redis"() {
@@ -54,7 +59,7 @@ class RedisKeyWithQueryComposerSpec extends Specification {
                 assert params[1].toString() == KEYS[1]
                 QUERY_KEY_SET
             }
-
+            0 * requestExtractorMock.getPayloadFromRequestHeaders(_, requestMock) >> null
             2 * keyHelperMock.concatenateKeys(*_) >> { arg ->
                 def params = arg[0] as List<String>
                 assert params == [KEYS[0], "num", "animal", ["5"], ["dog", "cat"]]
@@ -93,6 +98,7 @@ class RedisKeyWithQueryComposerSpec extends Specification {
                 assert params[1].toString() == KEYS[1]
                 QUERY_KEY_SET
             }
+            2 * requestExtractorMock.getPayloadFromRequestHeaders(_, requestMock) >> payloadOverride
             2 * redisSvcMock.hasKey(RedisKeyPrefix.EXECUTE, RedisOpsType.VALUE, invalidKey) >> false
             4 * keyHelperMock.concatenateKeys(*_) >> invalidKey >> { arg ->
                 def params = arg[0] as List<String>
@@ -103,7 +109,9 @@ class RedisKeyWithQueryComposerSpec extends Specification {
                 assert params == [KEYS[1], "num", "animal", ["5"], ["dog"]]
                 RESULTS[1]
             }
-            4 * payloadParserMock.parse(payload, _) >> { arg ->
+            // if the payload override is set, then it should parse that
+            // else it should parse the actual payload
+            4 * payloadParserMock.parse(payloadOverride ?: payload, _) >> { arg ->
                 def params = arg as List
                 assert params[1] == "num"
                 "5"
@@ -126,6 +134,9 @@ class RedisKeyWithQueryComposerSpec extends Specification {
 
         then: "there are 2 results"
             result == [RESULTS[0], RESULTS[1]]
+
+        where:
+            payloadOverride << [null, "some payload override"]
 
     }
 

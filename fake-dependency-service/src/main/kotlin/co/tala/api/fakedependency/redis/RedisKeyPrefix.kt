@@ -7,5 +7,6 @@ class RedisKeyPrefix {
         const val VERIFY_PAYLOAD = "fake-dependency/verify-payload"
         const val VERIFY_HEADERS = "fake-dependency/verify-headers"
         const val BINARY = "fake-dependency/binary"
+        const val PARSE_PAYLOAD_REQUEST_HEADER = "fake-dependency/parse-payload-request-header"
     }
 }

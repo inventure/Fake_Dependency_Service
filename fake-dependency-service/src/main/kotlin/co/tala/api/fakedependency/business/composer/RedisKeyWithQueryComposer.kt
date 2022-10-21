@@ -1,6 +1,7 @@
 package co.tala.api.fakedependency.business.composer
 
 import co.tala.api.fakedependency.business.helper.IKeyHelper
+import co.tala.api.fakedependency.business.helper.IRequestExtractor
 import co.tala.api.fakedependency.business.parser.IPayloadParser
 import co.tala.api.fakedependency.business.parser.IQueryParser
 import co.tala.api.fakedependency.redis.IRedisService
@@ -16,7 +17,8 @@ class RedisKeyWithQueryComposer(
     private val redisKeyComposer: IRedisKeyComposer,
     private val queryParser: IQueryParser,
     private val keyHelper: IKeyHelper,
-    private val parser: IPayloadParser
+    private val parser: IPayloadParser,
+    private val requestExtractor: IRequestExtractor
 ) : IRedisKeyWithQueryComposer {
     override fun getKeys(
         requestId: String?,
@@ -34,14 +36,20 @@ class RedisKeyWithQueryComposer(
         if (mockExists)
             redisKeyWithQuery
         else {
-            // If mock does not exist with given URI, then parse the request payload for key values
             val queryKeys: Set<String> = redisSvc.getSetValues(
                 keyPrefix = RedisKeyPrefix.QUERY,
                 key = redisKey,
                 type = object : TypeReference<Set<String>>() {}
             )
+            // override payload to parse a request header if the mock was set up with X-Fake-Dependency-Parse-Payload-Header header
+            val payloadOverride: Any? = requestExtractor.getPayloadFromRequestHeaders(redisKey, request)
+            // If mock does not exist with given URI, then parse the request payload for key values
             val parsedQuery = queryKeys.mapNotNull { key: String ->
-                val result = if (payload != null) parser.parse(payload, key) else null
+                val result = when {
+                    payloadOverride != null -> parser.parse(payloadOverride, key)
+                    payload != null -> parser.parse(payload, key)
+                    else -> null
+                }
                 if (result != null) key to listOf(result) else null
             }.toMap()
             makeKeyWithQuery(redisKey, parsedQuery)

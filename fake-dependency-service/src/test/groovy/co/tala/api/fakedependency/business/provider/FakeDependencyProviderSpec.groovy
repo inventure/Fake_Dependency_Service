@@ -83,6 +83,7 @@ class FakeDependencyProviderSpec extends Specification {
                     redisKeyWithQuery
                 }
                 1 * redisSvcMock.pushListValue(RedisKeyPrefix.EXECUTE, redisKeyWithQuery, mockData)
+                1 * requestExtractorMock.setPayloadRequestHeaderName(redisKey, requestMock)
             }
 
         when: "setup is invoked"

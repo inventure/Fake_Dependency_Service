@@ -6,8 +6,8 @@ import co.tala.api.fakedependency.business.helper.IKeyHelper
 import co.tala.api.fakedependency.business.helper.IRequestExtractor
 import co.tala.api.fakedependency.business.mockdata.IMockDataRetriever
 import co.tala.api.fakedependency.business.parser.IQueryParser
-import co.tala.api.fakedependency.model.MockData
 import co.tala.api.fakedependency.model.DetailedRequestPayloads
+import co.tala.api.fakedependency.model.MockData
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import com.fasterxml.jackson.core.type.TypeReference
@@ -41,11 +41,11 @@ internal class FakeDependencyProvider(
         ).forEach { redisKey ->
             val keys = query.keys
             val values = query.values
-            if (query.isNotEmpty()) {
+            if (query.isNotEmpty())
                 redisSvc.pushSetValues(RedisKeyPrefix.QUERY, redisKey, *keys.toTypedArray())
-            }
             val redisKeyWithQuery = keyHelper.concatenateKeys(redisKey, *keys.plus(values).toTypedArray())
             redisSvc.pushListValue(RedisKeyPrefix.EXECUTE, redisKeyWithQuery, mockData)
+            requestExtractor.setPayloadRequestHeaderName(redisKey, request)
         }
         return ResponseEntity.ok(mockData)
     }
