@@ -16,8 +16,8 @@ import javax.servlet.http.HttpServletRequest
 @Unroll
 class RedisKeyWithQueryComposerSpec extends Specification {
     private static final KEYS = ["key1", "key2"]
-    private static final Map<String, List<String>> QUERY_MAP = ["num": ["5"], "animal": ["dog", "cat"]]
-    private static final Set<String> QUERY_KEY_SET = ["num", "animal"]
+    private static final Map<String, List<String>> QUERY_MAP = ["animal": ["dog", "cat"], "num": ["5"]]
+    private static final Set<String> QUERY_KEY_SET = ["num", "animal"] // test the set order should be sorted
     private static final Map<String, List<String>> QUERY_EMPTY_MAP = [:]
     private static final List<String> RESULTS = ["result0", "result1"]
 
@@ -62,11 +62,11 @@ class RedisKeyWithQueryComposerSpec extends Specification {
             0 * requestExtractorMock.getPayloadFromRequestHeaders(_, requestMock) >> null
             2 * keyHelperMock.concatenateKeys(*_) >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[0], "num", "animal", ["5"], ["dog", "cat"]]
+                assert params == [KEYS[0], "animal", "num", ["dog", "cat"], ["5"]]
                 RESULTS[0]
             } >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[1], "num", "animal", ["5"], ["dog", "cat"]]
+                assert params == [KEYS[1], "animal", "num", ["dog", "cat"], ["5"]]
                 "result1"
             }
             RESULTS.each {
@@ -102,21 +102,17 @@ class RedisKeyWithQueryComposerSpec extends Specification {
             2 * redisSvcMock.hasKey(RedisKeyPrefix.EXECUTE, RedisOpsType.VALUE, invalidKey) >> false
             4 * keyHelperMock.concatenateKeys(*_) >> invalidKey >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[0], "num", "animal", ["5"], ["dog"]]
+                assert params == [KEYS[0], "animal", "num", ["dog"], ["5"]]
                 RESULTS[0]
             } >> invalidKey >> { arg ->
                 def params = arg[0] as List<String>
-                assert params == [KEYS[1], "num", "animal", ["5"], ["dog"]]
+                assert params == [KEYS[1], "animal", "num", ["dog"], ["5"]]
                 RESULTS[1]
             }
             // if the payload override is set, then it should parse that
             // else it should parse the actual payload
             4 * payloadParserMock.parse(payloadOverride ?: payload, _) >> { arg ->
                 def params = arg as List
-                assert params[1] == "num"
-                "5"
-            } >> { arg ->
-                def params = arg as List
                 assert params[1] == "animal"
                 "dog"
             } >> { arg ->
@@ -127,6 +123,10 @@ class RedisKeyWithQueryComposerSpec extends Specification {
                 def params = arg as List
                 assert params[1] == "animal"
                 "dog"
+            } >> { arg ->
+                def params = arg as List
+                assert params[1] == "num"
+                "5"
             }
 
         when: "get keys is called"
