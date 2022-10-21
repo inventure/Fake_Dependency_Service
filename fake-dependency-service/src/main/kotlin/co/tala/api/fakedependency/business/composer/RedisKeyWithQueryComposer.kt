@@ -44,7 +44,7 @@ class RedisKeyWithQueryComposer(
             // override payload to parse a request header if the mock was set up with X-Fake-Dependency-Parse-Payload-Header header
             val payloadOverride: Any? = requestExtractor.getPayloadFromRequestHeaders(redisKey, request)
             // If mock does not exist with given URI, then parse the request payload for key values
-            val parsedQuery = queryKeys.mapNotNull { key: String ->
+            val parsedQuery = queryKeys.sorted().mapNotNull { key: String ->
                 val result = when {
                     payloadOverride != null -> parser.parse(payloadOverride, key)
                     payload != null -> parser.parse(payload, key)
