@@ -1,12 +1,15 @@
 package co.tala.api.fakedependency.business.helper
 
 import co.tala.api.fakedependency.configuration.helper.RequestIdExtractorConfiguration
+import co.tala.api.fakedependency.constant.Constant.MOCK_RESOURCES
+import co.tala.api.fakedependency.constant.HttpMethod
+import co.tala.api.fakedependency.extension.getHttpMethod
+import co.tala.api.fakedependency.extension.hasMockResources
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
-import org.springframework.util.LinkedMultiValueMap
 import javax.servlet.http.HttpServletRequest
 
 @Component
@@ -18,6 +21,7 @@ class RequestExtractor(
 ) : IRequestExtractor {
     companion object {
         private const val X_FAKE_DEPENDENCY_PARSE_PAYLOAD_HEADER: String = "X-Fake-Dependency-Parse-Payload-Header"
+        private const val X_FAKE_DEPENDENCY_HTTP_METHOD: String = "X-Fake-Dependency-Http-Method"
     }
 
     override fun getRequestId(request: HttpServletRequest): String? = config.headers
@@ -55,5 +59,14 @@ class RequestExtractor(
             // Else return the RAW STRING (i.e XML)
             payload
         }
+    }
+
+    override fun getHttpMethod(request: HttpServletRequest): HttpMethod = when {
+        // If the endpoint is for setup or verify, use the Request Header
+        request.hasMockResources() -> request
+            .getHeader(X_FAKE_DEPENDENCY_HTTP_METHOD)
+            ?.let { HttpMethod.of(it.uppercase().trim()) } ?: HttpMethod.NONE
+        // The if endpoint is the execution of mock, use the actual HTTP Method
+        else -> request.getHttpMethod()
     }
 }

@@ -1,0 +1,273 @@
+// With Payload, No Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources?phone=1234567890
+Content-Type: application/json
+
+{
+  "responseBody": {
+    "userId": 123
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+POST http://{{host}}/mock-by-http-method-test
+Content-Type: application/json
+
+{
+  "email": "name@example.com",
+  "name": "Elliot Masor",
+  "phone": "1234567890"
+}
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/mock-resources?phone=1234567890
+
+###
+
+// With POST Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources?b=20
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: POST
+
+{
+  "responseBody": {
+    "userId": 123
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+// With Invalid Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources?b=20
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: INVALID
+
+{
+  "responseBody": {
+    "userId": 123
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+// GET should fail
+GET http://{{host}}/mock-by-http-method-test?b=20
+Content-Type: application/json
+
+###
+
+// POST should succeed
+POST http://{{host}}/mock-by-http-method-test
+Content-Type: application/json
+
+{
+  "b": 20
+}
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/mock-resources?b=20
+X-Fake-Dependency-Http-Method: POST
+
+###
+
+// With POST and GET Filters of different responses
+
+// With POST Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources?a=10
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: POST
+X-Request-ID: abcd
+
+{
+  "responseBody": {
+    "methodTest": "POST"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+// With GET Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources?a=10
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: GET
+X-Request-ID: abcd
+
+{
+  "responseBody": {
+    "methodTest": "GET"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+// GET should succeed
+GET http://{{host}}/mock-by-http-method-test?a=10
+X-Request-ID: abcd
+Content-Type: application/json
+
+###
+
+// POST should succeed
+POST http://{{host}}/mock-by-http-method-test
+X-Request-ID: abcd
+Content-Type: application/json
+
+{
+  "a": 10,
+  "someKey": "someValue"
+}
+
+###
+
+POST http://{{host}}/mock-by-http-method-test?a=10
+X-Request-ID: abcd
+Content-Type: application/json
+
+{
+  "someKey": "someValue"
+}
+
+###
+
+// Verify should return different results for both
+GET http://{{host}}/mock-by-http-method-test/mock-resources?a=10
+X-Request-ID: abcd
+X-Fake-Dependency-Http-Method: POST
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/mock-resources?a=10
+X-Request-ID: abcd
+X-Fake-Dependency-Http-Method: GET
+
+###
+
+// Sequenced Mocks with Filter
+POST http://{{host}}/mock-by-http-method-test/mock-resources/some-resource?foo=5
+X-Fake-Dependency-Http-Method: GET
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 500
+  }
+}
+
+###
+
+POST http://{{host}}/mock-by-http-method-test/mock-resources/some-resource?foo=5
+X-Fake-Dependency-Http-Method: GET
+Content-Type: application/json
+
+{
+  "responseBody": "response payload foo",
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/some-resource?foo=5
+
+###
+
+GET http://{{host}}/mock-by-http-method-test/mock-resources/some-resource?foo=5
+X-Fake-Dependency-Http-Method: GET
+
+###
+
+POST http://{{host}}/mock-by-http-method-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+X-Fake-Dependency-Http-Method: POST
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 500
+  }
+}
+
+###
+
+PATCH http://{{host}}/mock-by-http-method-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+X-Fake-Dependency-Http-Method: POST
+
+###
+
+POST http://{{host}}/mock-by-http-method-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+X-Fake-Dependency-Http-Method: POST
+Content-Type: application/json
+
+{
+  "responseBody": null,
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+
+###
+
+PATCH http://{{host}}/mock-by-http-method-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+X-Fake-Dependency-Http-Method: POST
+
+<?xml version="1.0" encoding="UTF-8"?><Root><Simple><Path>bar</Path></Simple></Root>
+###
+
+POST http://{{host}}/mock-by-http-method-test/soap/api/resource
+X-Fake-Dependency-Http-Method: POST
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+POST http://{{host}}/mock-by-http-method-test/soap/api/resource
+X-Fake-Dependency-Http-Method: POST
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+POST http://{{host}}/mock-by-http-method-test/soap/api/resource
+X-Fake-Dependency-Http-Method: POST
+
+<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.reporteCC.cc.com/"><soapenv:Header /><soapenv:Body><ws:someWs><arg0><![CDATA[<?xml version="1.0" encoding="ISO-8859-1"?><InnerXml><A>foo</A><B>bar</B></InnerXml>]]></arg0></ws:someWs></soapenv:Body></soapenv:Envelope>
+###
+
+GET http://{{host}}/mock-by-http-method-test/soap/api/resource/mock-resources?Body.someWs.arg0.A=foo&Body.someWs.arg0.B=bar
+X-Fake-Dependency-Http-Method: POST
+
+###

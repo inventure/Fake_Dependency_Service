@@ -1,7 +1,7 @@
 package co.tala.api.fakedependency.business.mockdata.defaultmock
 
 import co.tala.api.fakedependency.configuration.defaultmock.DefaultCallbackConfiguration
-import co.tala.api.fakedependency.constant.BaseUrl
+import co.tala.api.fakedependency.constant.Constant
 import co.tala.api.fakedependency.exception.MockNotFoundException
 import co.tala.api.fakedependency.model.MockData
 import kotlinx.coroutines.GlobalScope
@@ -18,7 +18,7 @@ class DefaultMockDataRetriever(
 ) : IDefaultMockDataRetriever {
 
     override fun getDefaultMockData(request: HttpServletRequest, payload: Any?): MockData {
-        val uri = request.requestURI.replace(BaseUrl.FAKE_DEPENDENCY, "")
+        val uri = request.requestURI.replace(Constant.MOCK_SERVICE, "")
 
         val defaultable: Defaultable = defaultables.firstOrNull {
             val regex = it.getUriRegex()
