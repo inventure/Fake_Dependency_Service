@@ -1,7 +1,7 @@
 package co.tala.api.fakedependency.controller
 
 import co.tala.api.fakedependency.business.provider.IFakeDependencyProvider
-import co.tala.api.fakedependency.constant.BaseUrl
+import co.tala.api.fakedependency.constant.Constant
 import co.tala.api.fakedependency.constant.VerifyMockContent
 import co.tala.api.fakedependency.model.MockData
 import io.swagger.annotations.Api
@@ -12,7 +12,7 @@ import javax.validation.Valid
 
 @RestController
 @RequestMapping(
-    BaseUrl.FAKE_DEPENDENCY,
+    Constant.MOCK_SERVICE,
     produces = ["application/json"]
 )
 @Api(value = "Fake Dependency API", description = "A mock for any API dependency")

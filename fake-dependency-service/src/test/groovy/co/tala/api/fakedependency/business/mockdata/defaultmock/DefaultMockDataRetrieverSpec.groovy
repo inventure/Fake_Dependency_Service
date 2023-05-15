@@ -1,7 +1,7 @@
 package co.tala.api.fakedependency.business.mockdata.defaultmock
 
 import co.tala.api.fakedependency.configuration.defaultmock.DefaultCallbackConfiguration
-import co.tala.api.fakedependency.constant.BaseUrl
+import co.tala.api.fakedependency.constant.Constant
 import co.tala.api.fakedependency.exception.MockNotFoundException
 import co.tala.api.fakedependency.model.MockData
 import co.tala.api.fakedependency.testutil.MockDataFactory
@@ -45,7 +45,7 @@ class DefaultMockDataRetrieverSpec extends Specification {
             1 * defaultableMock.getMockData(payload) >> fakeData
             1 * defaultableMock.getUriRegex() >> new Regex("/resources/([a-z0-9]+)/things")
             1 * defaultableMock.getCallback() >> defaultCallback()
-            1 * requestMock.getRequestURI() >> "${BaseUrl.FAKE_DEPENDENCY}/resources/som3th1ng/things"
+            1 * requestMock.getRequestURI() >> "${Constant.MOCK_SERVICE}/resources/som3th1ng/things"
 
         when:
             MockData result = sut.getDefaultMockData(requestMock, payload)
@@ -62,7 +62,7 @@ class DefaultMockDataRetrieverSpec extends Specification {
             0 * defaultableMock.getMockData(_)
             1 * defaultableMock.getUriRegex() >> new Regex("/resources/([a-z0-9]+)/things")
             0 * defaultableMock.getCallback()
-            1 * requestMock.getRequestURI() >> "${BaseUrl.FAKE_DEPENDENCY}/not-found"
+            1 * requestMock.getRequestURI() >> "${Constant.MOCK_SERVICE}/not-found"
 
         when:
             sut.getDefaultMockData(requestMock, payload)

@@ -76,6 +76,10 @@ guarantee tests running in parallel do not override each other's mocks. Here are
 
 * The URI: The entire uri is part of the key. When unique resources exist in the URI, that is enough for the key to be
   unique. An example could be if a user's id is in the URI. Query Params can also provide unique resources in the URI.
+* Http Method: By default, mocks will accept any http method. But we can also restrict mocks to only allow specific HTTP
+  methods by defining the `X-Fake-Dependency-Http-Method` header in the mock setup. This also allows us to return
+  different response bodies for different http methods of the same endpoint. Supported Http Methods are POST, PUT,
+  PATCH, GET, DELETE, OPTIONS, HEAD, TRACE, and CONNECT.
 * Request ID Headers: While optional, it is recommended to have a Request ID header for optimum uniqueness and
   performance. In micro-service architectures, it is a good practice for each service to forward Request IDs to each
   other. This allows for tracing of each workflow execution. Additionally, some URIs may not unique. A Request ID as
@@ -342,6 +346,100 @@ GET /mock-service/sagemaker/mock-resources/endpoints/some-xgb1/invocations?verif
 }
 ```
 
+### Mock same endpoint with different Http Methods
+
+By default, mocks will work for any http method. However, in RESTful architecture, the same endpoint can support
+different http methods. In order to have the same endpoint return different data for different http methods, we can use
+the request header `X-Fake-Dependency-Http-Method` to define which http method is supported by the mock.
+
+### Setup POST
+
+```http request
+POST /mock-service/mock-by-http-method-test/mock-resources?a=10
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: POST
+X-Request-ID: abcd
+
+{
+  "responseBody": {
+    "methodTest": "POST"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+```
+
+### Setup GET
+
+```http request
+POST /mock-service/mock-by-http-method-test/mock-resources?a=10
+Content-Type: application/json
+X-Fake-Dependency-Http-Method: GET
+X-Request-ID: abcd
+
+{
+  "responseBody": {
+    "methodTest": "GET"
+  },
+  "responseSetUpMetadata": {
+    "delayMs": 0,
+    "httpStatus": 200
+  }
+}
+```
+
+### Execute POST
+
+```http request
+POST /mock-service/mock-by-http-method-test?a=10
+X-Request-ID: abcd
+Content-Type: application/json
+
+{
+  "someKey": "someValue"
+}
+
+HTTP/1.1 200 
+{"methodTest":"POST"}
+```
+
+### Execute GET
+
+```http request
+GET /mock-service/mock-by-http-method-test?a=10
+X-Request-ID: abcd
+
+HTTP/1.1 200 
+Content-Type: application/json
+{"methodTest":"GET"}
+```
+
+### Verify POST
+
+```http request
+GET /mock-service/mock-by-http-method-test/mock-resources?a=10
+X-Request-ID: abcd
+X-Fake-Dependency-Http-Method: POST
+
+HTTP/1.1 200 
+Content-Type: application/json
+[{"someKey":"someValue"}]
+```
+
+### Verify GET
+
+```http request
+GET /mock-service/mock-by-http-method-test/mock-resources?a=10
+X-Request-ID: abcd
+X-Fake-Dependency-Http-Method: GET
+
+HTTP/1.1 200 
+Content-Type: application/json
+[""]
+```
+
 ### Verification Features
 
 There are 3 different flavors for verification: `list`, `detailed`, and `last`. The `verifyMockContent` query param
@@ -402,7 +500,9 @@ Dependency Service in docker, then run these files to see the service working in
 * [GetWithQueryParamMulti](./http/GetWithQueryParamMulti.http) - Provides examples where the query param is the unique
   id, and there are multiple query params.
 * [GetWithUniqueURI](./http/GetWithUniqueURI.http) - Provides examples where the URI is unique enough
-* [ParseRequestHeaderPayload](./http/ParseRequestHeaderPayload.http) - Provides examples where the mock id is parsed from a request header json
+* [HttpMethodMock](.http/HttpMethodMock.http) - Provides examples of restricting a mock to an http method.
+* [ParseRequestHeaderPayload](./http/ParseRequestHeaderPayload.http) - Provides examples where the mock id is parsed
+  from a request header json
 * [PostWithPayloadId](./http/PostWithPayloadId.http) - Provides examples where the unique is a root level property in a
   request payload.
 * [ResponseHeaders](./http/ResponseHeaders.http) - Provides examples where the mock returns defined response headers.

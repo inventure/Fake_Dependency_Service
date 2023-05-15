@@ -1,6 +1,8 @@
 package co.tala.api.fakedependency.business.helper
 
 import co.tala.api.fakedependency.configuration.helper.RequestIdExtractorConfiguration
+import co.tala.api.fakedependency.constant.HttpMethod
+import co.tala.api.fakedependency.exception.IllegalHttpMethodException
 import co.tala.api.fakedependency.redis.IRedisService
 import co.tala.api.fakedependency.redis.RedisKeyPrefix
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -13,6 +15,7 @@ import javax.servlet.http.HttpServletRequest
 class RequestExtractorSpec extends Specification {
     private final static String X_FAKE_DEPENDENCY_PARSE_PAYLOAD_HEADER_KEY = "X-Fake-Dependency-Parse-Payload-Header"
     private final static String X_FAKE_DEPENDENCY_PARSE_PAYLOAD_HEADER_VALUE = "X-Some-Header"
+    private final static String X_FAKE_DEPENDENCY_HTTP_METHOD_HEADER_KEY = "X-Fake-Dependency-Http-Method"
 
     private IKeyHelper keyHelperMock
     private IRedisService redisSvcMock
@@ -164,5 +167,83 @@ class RequestExtractorSpec extends Specification {
 
         then: "the result should be null"
             result == null
+    }
+
+    def "getHttpMethod should return value from X-Fake-Dependency-Http-Method header when uri is for setup/verify: uri=#uri, httpMethod=#httpMethod"() {
+        given:
+            def config = new RequestIdExtractorConfiguration("")
+            1 * requestMock.getHeader(X_FAKE_DEPENDENCY_HTTP_METHOD_HEADER_KEY) >> httpMethod.toString()
+            1 * requestMock.getRequestURI() >> uri
+            0 * requestMock.getMethod()
+            IRequestExtractor sut = new RequestExtractor(keyHelperMock, config, redisSvcMock, objectMapper)
+
+        when:
+            def result = sut.getHttpMethod(requestMock)
+
+        then:
+            result == httpMethod
+
+        where:
+            uri = "/mock-resources/thing/123"
+            httpMethod << HttpMethod.values().findAll { it != HttpMethod.NONE }
+    }
+
+    def "getHttpMethod should return NONE when X-Fake-Dependency-Http-Method header does not exist and when uri is for setup/verify: uri=#uri, httpMethod=#httpMethod"() {
+        def config = new RequestIdExtractorConfiguration("")
+        1 * requestMock.getHeader(X_FAKE_DEPENDENCY_HTTP_METHOD_HEADER_KEY) >> httpMethod
+        1 * requestMock.getRequestURI() >> uri
+        0 * requestMock.getMethod()
+        IRequestExtractor sut = new RequestExtractor(keyHelperMock, config, redisSvcMock, objectMapper)
+
+        when:
+            def result = sut.getHttpMethod(requestMock)
+
+        then:
+            result == HttpMethod.NONE
+
+        where:
+            uri = "/mock-resources/thing/123"
+            httpMethod = null
+
+    }
+
+    def "getHttpMethod should throw IllegalHttpMethodException when X-Fake-Dependency-Http-Method header is invalid and when uri is for setup/verify: uri=#uri, httpMethod=#httpMethod"() {
+        given:
+            def config = new RequestIdExtractorConfiguration("")
+            1 * requestMock.getHeader(X_FAKE_DEPENDENCY_HTTP_METHOD_HEADER_KEY) >> httpMethod
+            1 * requestMock.getRequestURI() >> uri
+            0 * requestMock.getMethod()
+            IRequestExtractor sut = new RequestExtractor(keyHelperMock, config, redisSvcMock, objectMapper)
+
+        when:
+            sut.getHttpMethod(requestMock)
+
+        then:
+            def ex = thrown IllegalHttpMethodException
+            ex.message == "INVALID is not a valid Http Method! Valid Http Methods are POST,PUT,PATCH,GET,DELETE,OPTIONS,HEAD,TRACE,CONNECT."
+
+        where:
+            uri = "/mock-resources/thing/123"
+            httpMethod = "INVALID"
+
+    }
+
+    def "getHttpMethod should return value from actual http method when uri is for execution of mock: uri=#uri, httpMethod=#httpMethod"() {
+        given:
+            def config = new RequestIdExtractorConfiguration("")
+            0 * requestMock.getHeader(_)
+            1 * requestMock.getRequestURI() >> uri
+            1 * requestMock.getMethod() >> httpMethod.toString()
+            IRequestExtractor sut = new RequestExtractor(keyHelperMock, config, redisSvcMock, objectMapper)
+
+        when:
+            def result = sut.getHttpMethod(requestMock)
+
+        then:
+            result == httpMethod
+
+        where:
+            uri = "/thing/123"
+            httpMethod << HttpMethod.values().findAll { it != HttpMethod.NONE }
     }
 }
