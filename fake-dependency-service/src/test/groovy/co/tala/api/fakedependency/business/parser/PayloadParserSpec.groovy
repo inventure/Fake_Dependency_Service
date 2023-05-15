@@ -60,4 +60,19 @@ class PayloadParserSpec extends Specification {
             payload << [5, 0.4, 10L, 0.9f, new InvalidModel()]
     }
 
+    def "findValueInUrlEncodedForm"() {
+        when:
+            String result = sut.parse(form, "foo")
+
+        then:
+            result == expected
+
+        where:
+            form          | expected
+            " "           | null
+            ""            | null
+            "foo=#2%^%sf" | "#2%^%sf"
+            "bar=1&foo=2" | "2"
+            "bar=1&foo"   | null
+    }
 }
