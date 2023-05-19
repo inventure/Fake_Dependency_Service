@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "2.2.13.RELEASE"
-    id("io.spring.dependency-management") version "1.0.11.RELEASE"
-    kotlin("jvm") version "1.6.0"
-    kotlin("plugin.spring") version "1.6.0"
+    id("org.springframework.boot") version "2.7.3"
+    id("io.spring.dependency-management") version "1.0.13.RELEASE"
+    kotlin("jvm") version "1.6.21"
+    kotlin("plugin.spring") version "1.6.21"
     groovy
     jacoco
 }
@@ -24,15 +24,16 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("io.springfox:springfox-swagger2:2.6.1")
+    implementation("io.springfox:springfox-swagger2:3.0.0")
     implementation("org.apache.commons:commons-pool2:2.11.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.8.5")
-    implementation("io.springfox:springfox-swagger-ui:2.6.1")
+    implementation("io.springfox:springfox-swagger-ui:3.0.0")
+    implementation("org.hibernate.validator:hibernate-validator:6.0.16.Final")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.8")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.spockframework:spock-core:1.3-groovy-2.5")
+    testImplementation("org.spockframework:spock-core:2.3-groovy-3.0")
 }
 
 tasks.withType<KotlinCompile> {
