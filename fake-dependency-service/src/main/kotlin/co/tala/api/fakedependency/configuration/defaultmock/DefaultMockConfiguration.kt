@@ -2,6 +2,8 @@ package co.tala.api.fakedependency.configuration.defaultmock
 
 import co.tala.api.fakedependency.business.mockdata.defaultmock.Defaultable
 import co.tala.api.fakedependency.business.mockdata.defaultmock.example.ExampleDefault
+import co.tala.api.fakedependency.business.mockdata.defaultmock.braze.BrazeDataDefault
+import co.tala.api.fakedependency.business.mockdata.defaultmock.braze.BrazeContentCardsSyncDefault
 import co.tala.api.fakedependency.redis.IRedisService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,6 +15,8 @@ class DefaultMockConfiguration(
 
     @Bean
     fun defaultables(): List<Defaultable> = listOf(
-        ExampleDefault(redisSvc)
+        ExampleDefault(redisSvc),
+        BrazeDataDefault(),
+        BrazeContentCardsSyncDefault()
     )
 }
